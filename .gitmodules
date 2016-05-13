@@ -1,0 +1,3 @@
+[submodule "lrn2/data/formats/midi_utils"]
+	path = lrn2/data/formats/midi_utils
+	url = https://github.com/OFAI/python-midi.git
