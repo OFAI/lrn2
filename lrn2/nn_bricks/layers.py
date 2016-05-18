@@ -18,7 +18,6 @@ from lrn2.nn_bricks.plot import Plotter
 from lrn2.nn_bricks.notifier import Notifier
 from theano.tensor.signal.downsample import max_pool_2d
 from theano.sandbox.cuda.basic_ops import gpu_contiguous
-from lrn2.nn_bricks.monitor import Monitor
 
 if theano.config.device.startswith('gpu'):
     from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
@@ -45,11 +44,13 @@ class NNBase(object):
         
     plot_dparams : boolean, optional
         switch for plotting histograms of delta params
-
+        
+    tiling : string
+        tiling of parameters, either 'default' or 'corpus'
     """
     plotting_registered = False
     def __init__(self, name, plot_params = True, plot_dparams = True, 
-                 **kwargs):
+                 tiling = 'default', **kwargs):
         rng = np.random.RandomState()
         self.t_rng = RandomStreams(rng.randint(2 ** 30))
 
@@ -60,6 +61,7 @@ class NNBase(object):
         
         self.plot_dparams = plot_dparams
         self.plot_params = plot_params
+        self.tiling_params = tiling
 
         if isinstance(self, Plotter) and not self.plotting_registered:
             register_plot = partial(NNBase.register_plotting, self)
@@ -92,7 +94,7 @@ class NNBase(object):
             for p in self.params:
                 self.register_plot(partial(get_val, p), name_net = self.name,
                                    label = p.name,
-                                   tiling = 'default')
+                                   tiling = self.tiling_params)
                 self.register_plot(partial(get_val_flat, p), name_net = self.name,
                                    label = p.name,
                                    ptype = 'hist')
