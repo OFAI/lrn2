@@ -153,11 +153,6 @@ class Distributer(object):
     a stack to collect the regularization cost.
     """
     def __init__(self, reg_fun, **kwargs):
-#         if isinstance(self, NNStack):
-#             LOGGER.warning("A regularization class is not meant to be a "
-#                            "super class of a stack. Instead, derive the stack "
-#                            "from a RegularizationCollector and derive the layers "
-#                            "from the actual regularization class.")
         if hasattr(self, 'reg_funs'):
             self.reg_funs.append(reg_fun)
         else:
@@ -201,7 +196,8 @@ class NonNegative(Distributer):
     
 class VarianceFixer(Distributer):
     """
-    Fixed variance of hidden unit activations in stack prevents vanishing gradients
+    Fixed variance of hidden unit activations in stack prevents vanishing
+    gradients
     """
     def __init__(self, trg_variance = 4., variance_fix_strength = 1000.0, 
                  axis = None, **kwargs):
@@ -218,7 +214,8 @@ class VarianceFixer(Distributer):
         
 class Smoother(Distributer):
     """
-    For convolution in time: smoothes hidden unit activations in time dimension (axis 2)
+    For convolution in time: smoothes hidden unit activations in time 
+    dimension (axis 2)
     """
     def __init__(self, smooth = 1., **kwargs):
         self.int_smooth = smooth
@@ -290,33 +287,64 @@ class SparsityLee(Distributer):
 
     For stacks, add class but note that stack params will be ignored
     the params of single layers are taken into account.
+    
+    Parameters
+    ----------
+    
+    sparsity : float. optional
+        target sparsity
+    
+    sparsity_strength : float, optional
+        sparsity strength
+        
+    narrow : float, optional
+        similar to L1 weight regularization - pushes activations close to
+        target sparsity even closer.
+        
+    activations : array-like, optional
+        array with theano graphs whose result equals an activation which will
+        get regularized. If not set, component should have method 'activation_h'.
     """
-    def __init__(self, sparsity, sparsity_strength = 0, narrow=0., **kwargs):
+    def __init__(self, sparsity, sparsity_strength = 0, narrow=0.,
+                 activations = None, **kwargs):
         Distributer.__init__(self, self.get_ghbias_reg)
         self.sparsity = sparsity
         self.int_lee = sparsity_strength
         self.narrow = narrow
+        self.activations = activations
         cost = self.cost
-
+        
         self.cost = lambda *args : cost(*args) + self.get_ghbias_reg()
 
 
     def reg_sparsity(self):
         """ Determine regularisation term for sparsity """
-        cost_sparsity = T.sum((T.mean(self.activation_h(self.input), axis=1) -
-                                self.sparsity)**2) #* self.n_hidden
-        return cost_sparsity
+        self.ensure_activation_set()
+        regs = 0
+        for act in self.activations:
+            regs += T.sum((T.mean(act, axis=1) - self.sparsity)**2)
+        return regs
 
+    def ensure_activation_set(self):
+        if self.activations == None:
+            message = "Module 'activation_h', or pass other graphs as 'activations'."
+            assert hasattr(self, 'activation_h'), message
+            self.activations = [self.activation_h(self.input)]
+            
     def reg_selectivity(self):
         """ Determine regularisation term for selectivity """
-        cost_selectivity = T.sum((T.mean(self.activation_h(self.input), axis=0) -
-                                   self.sparsity)**2) #* self.n_hidden
-        return cost_selectivity
+        self.ensure_activation_set()
+        regs = 0
+        for act in self.activations:
+            regs += T.sum((T.mean(act, axis=0) - self.sparsity)**2)
+        return regs
 
     def reg_narrow(self):
-        """ Determine regularisation term for selectivity """
-        cost_narrow = T.sum((self.activation_h(self.input) - self.sparsity)**2)**0.5
-        return cost_narrow
+        """ Determine regularisation term for variance around sparsity val """
+        regs = 0
+        for act in self.activations:
+            regs += T.sum((act - self.sparsity))
+        return regs
 
     def get_ghbias_reg(self):
         """ Calculate regularisation component of hbias gradients """
@@ -327,17 +355,32 @@ class SparsityLee(Distributer):
 
 class WeightRegular(Distributer):
     """
-    L1 and L2 weight regularization.
-
-    Can be applied to single layers or stacks. Does not effect single layers
-    in a stack (if not applied to a stack, the stack does not have any weight
-    regularization.
+    L1 and L2 weight regularization. Can be applied to any layer in order to
+    regularize its shared variable 'W'. Any other set of shared variables can
+    be regularized by passing them in a list to the constructor (wl_targets).
+    
+    Parameters
+    ----------
+    
+    wl1 : float. optional
+        L1 weight regularization strength
+    
+    wl2 : float, optional
+        L2 weight regularization strength
+        
+    offset : float, optional
+        shifts regularization center from 0 to another value
+        
+    wl_targets : array-like, optional
+        array with theano shared variables (parameters) which will be
+        regularized. If not set, component should have attribute 'W'
     """
-    def __init__(self, wl1=0., wl2=0., offset = 0, **kwargs):
+    def __init__(self, wl1=0., wl2=0., offset = 0, wl_targets = None, **kwargs):
         Distributer.__init__(self, reg_fun = partial(WeightRegular.cost_reg, self))
         self.wl1 = np.cast[fx](wl1)
         self.wl2 = np.cast[fx](wl2)
         self.offset = offset
+        self.wl_targets = wl_targets
 
         if wl1 > 0 or wl2 > 0:
             cost = self.cost
@@ -345,17 +388,23 @@ class WeightRegular(Distributer):
 
     def cost_reg(self):
         """ Calculate regularisation component of weight gradients """
-        reg_l1_weights = self.wl1 * T.sum(T.abs_(self.W - self.offset))
-        reg_l2_weights = self.wl2 * T.sum(T.abs_(self.W - self.offset) ** 2)
-        return reg_l1_weights + reg_l2_weights
+        if self.wl_targets == None:
+            message = "Module needs attrib 'W' or pass other as 'wl_targets'."
+            assert hasattr(self, 'W'), message
+            self.wl_targets = [self.W]
+            
+        regs = 0
+        for trg in self.wl_targets:
+            regs += self.wl1 * T.sum(T.abs_(trg - self.offset))
+        for trg in self.wl_targets:
+            regs += self.wl2 * T.sum(T.abs_(trg - self.offset) ** 2)
+        return regs
 
 class WeightRegularRNN(Distributer):
     """
-    L1 and L2 weight regularization.
-
-    Can be applied to single layers or stacks. Does not effect single layers
-    in a stack (if not applied to a stack, the stack does not have any weight
-    regularization.
+    L1 and L2 weight regularization for RNNs with weights [W, Wx, Wh].
+    For a general method (if weights have different names or numbers) use
+    'WeightRegular' and pass weights there.
     """
     def __init__(self, wl1=0., wl2=0., **kwargs):
         Distributer.__init__(self, reg_fun = partial(WeightRegularRNN.cost_reg, self))
