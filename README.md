@@ -32,7 +32,7 @@ To install the lrn2 framework (Linux/Mac), run the following command in your ter
 
 `sudo python setup.py install` / `sudo python setup_mac.py install`
 
-or download the source and use it in your IDE (feel free to fork). Running the above command may still help to install the required dependencies.
+or download the source and use it in your IDE (feel free to fork). Running the above command may still help to install the required dependencies. 
 
 **Test the lrn2 framework:**
 
@@ -116,7 +116,7 @@ batch_size = 100            # Mini-batch size
 epochs = 151                # Number of epochs to train
 reduce_lr = False           # Don`t reduce learning rate (to zero over epochs)
 ```
-The file can be imported using the method `lrn2.util.config.get_config(config_file_path, specification_path)`, which returns a dictionary reflecting the config file content and structure. The `specification_path` (default is **lrn2/util/config_spec.ini**) points to a specification file, which defines the parameter defaults, variable types, and the config files structure. If you want to add a new parameter (e.g. to be used with a custom layer), copy the **config_spec.ini** in your project folder, edit it accordingly and pass it in `specification_path` of `get_config`. 
+The file can be imported using the method `lrn2.util.config.get_config(config_file_path, specification_path)`, which returns a dictionary reflecting the config file content and structure. The `specification_path` (default is **lrn2/util/config_spec.ini**) points to a specification file, which defines the parameter defaults, variable types, and the config files structure. You can always add a new parameter (e.g. to be used with a custom layer) and use it immediately in a brick, as long as it receives **kwargs (kwargs['parameter_name']), however, if its variable type is not defined in **util/config_spec.ini**, it has to be cast to the desired type. In order to avoid casting, copy the **config_spec.ini** in your project folder, edit it accordingly and pass it in `specification_path` of `get_config`. 
 
 Specific layer parameters are forwarded to the respective layer constructors as **kwargs and should be passed on to most mix-in class constructors (those who take parameters at all). Parameters defined in the config file but not used by any mix-in class (e.g. `wl2` is defined in config file, but the corresponding layer does not derive from `WeightRegular`) are ignored.
 
