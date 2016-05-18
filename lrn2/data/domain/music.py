@@ -26,8 +26,8 @@ class PianoRollVP(ViewPoint):
     def __init__(self, min_pitch = 0, max_pitch = 128, time_div = 0.5,
                  info = False, max_length = 1e16):
         super(PianoRollVP, self).__init__()
-        self.min_pitch = min_pitch
-        self.max_pitch = max_pitch
+        self.min_pitch = int(min_pitch)
+        self.max_pitch = int(max_pitch)
         self.time_div = time_div
         self.notes_dis = 0.
         self.onset_dis = 0.
@@ -56,10 +56,11 @@ class PianoRollVP(ViewPoint):
 
     def raw_to_repr(self, raw_data, label):
         pitches = self.get_pitch_from_raw_data(raw_data)
+        pitches = np.cast['int'](pitches)
         durs = self.get_duration_from_raw_data(raw_data)
         onsets = self.get_onset_from_raw_data(raw_data)
         length = (onsets[-1] + durs[-1]) / self.time_div
-        piano_roll = np.zeros((length, PianoRollVP.size.fget(self)))
+        piano_roll = np.zeros((int(length), int(PianoRollVP.size.fget(self))))
         notes = sorted(zip(pitches, onsets, durs, range(len(pitches))), key = lambda x : x[0])
         for i in range(len(notes)-1):
             if notes[i][2] // self.time_div > 1:
@@ -69,19 +70,15 @@ class PianoRollVP(ViewPoint):
                         durs[notes[i][3]] -= self.time_div
                     
         for pitch, onset, dur in zip(pitches, onsets, durs):
-#             assert self.max_pitch-pitch < piano_roll.shape[1], \
-#                 "Pitch range is too small for content ({0} <= {1})." \
-#                 .format(self.max_pitch, piano_roll.shape[1] + self.min_pitch)
-
-            off = (onset+dur) // self.time_div
-            on = (onset // self.time_div)
+            off = int((onset+dur) // self.time_div)
+            on = int((onset // self.time_div))
             if on == off:
                 self.notes_dis += 1
             
-            off = np.minimum(on + self.max_length, off)
+            off = int(np.minimum(on + self.max_length, off))
             try:
                 if on > 0 and piano_roll[on-1, self.max_pitch-pitch] == 1:
-                    self.onset_dis += 1
+                    self.onset_dis += 1                    
                 piano_roll[on:off, self.max_pitch-pitch] = 1
                 self.note_count += 1
             except IndexError as e:
