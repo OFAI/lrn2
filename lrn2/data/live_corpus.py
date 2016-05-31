@@ -104,6 +104,7 @@ class LiveCorpus(object):
         self.last_perc = -1
         self.limit_instances_ = limit_instances
         self.linearized = linearized
+        self.conv_maps = conv_maps
         try:
             self.preprocess = kwargs["preprocess"]
         except KeyError:
