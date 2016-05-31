@@ -304,39 +304,55 @@ class SparsityLee(Distributer):
     activations : array-like, optional
         array with theano graphs whose result equals an activation which will
         get regularized. If not set, component should have method 'activation_h'.
+        
+    strengths : array-like, optional
+        if more than one activation should be regularized, different strengths
+        can be passed here.
     """
     def __init__(self, sparsity, sparsity_strength = 0, narrow=0.,
-                 activations = None, **kwargs):
+                 activations = None, strengths = None, **kwargs):
         Distributer.__init__(self, self.get_ghbias_reg)
+        
         self.sparsity = sparsity
-        self.int_lee = sparsity_strength
+        
+        if strengths == None:
+            self.int_lee = [sparsity_strength,]
+        else:
+            self.int_lee = strengths
+            
         self.narrow = narrow
         self.activations = activations
         cost = self.cost
         
         self.cost = lambda *args : cost(*args) + self.get_ghbias_reg()
 
-
-    def reg_sparsity(self):
-        """ Determine regularisation term for sparsity """
-        self.ensure_activation_set()
-        regs = 0
-        for act in self.activations:
-            regs += T.sum((T.mean(act, axis=1) - self.sparsity)**2)
-        return regs
-
     def ensure_activation_set(self):
         if self.activations == None:
             message = "Module 'activation_h', or pass other graphs as 'activations'."
             assert hasattr(self, 'activation_h'), message
             self.activations = [self.activation_h(self.input)]
+        
+        if len(self.int_lee) == 1 and len(self.activations) > 1:
+            self.int_lee *= len(self.activations)
+             
+        message2 = "number of activations and sparsity values must match."
+        assert len(self.activations) == len(self.int_lee), message2
+
+    def reg_sparsity(self):
+        """ Determine regularisation term for sparsity """
+        self.ensure_activation_set()
+        regs = 0
+        for act, intense in zip(self.activations, self.int_lee):
+            regs += T.sum((T.mean(act, axis=1) - self.sparsity)**2) * intense
+        return regs
+
             
     def reg_selectivity(self):
         """ Determine regularisation term for selectivity """
         self.ensure_activation_set()
         regs = 0
-        for act in self.activations:
-            regs += T.sum((T.mean(act, axis=0) - self.sparsity)**2)
+        for act, intense in zip(self.activations, self.int_lee):
+            regs += T.sum((T.mean(act, axis=0) - self.sparsity)**2) * intense
         return regs
 
     def reg_narrow(self):
@@ -348,8 +364,7 @@ class SparsityLee(Distributer):
 
     def get_ghbias_reg(self):
         """ Calculate regularisation component of hbias gradients """
-        reg_sp = (self.int_lee * self.reg_sparsity() +
-                  self.int_lee * self.reg_selectivity() +
+        reg_sp = (self.reg_sparsity() + self.reg_selectivity() +
                   self.narrow * self.reg_narrow())
         return reg_sp
 
@@ -403,8 +418,7 @@ class WeightRegular(Distributer):
 class WeightRegularRNN(Distributer):
     """
     L1 and L2 weight regularization for RNNs with weights [W, Wx, Wh].
-    For a general method (if weights have different names or numbers) use
-    'WeightRegular' and pass weights there.
+    *Deprecated*: Use class 'WeightRegular' and pass weights via wl_targets.
     """
     def __init__(self, wl1=0., wl2=0., **kwargs):
         Distributer.__init__(self, reg_fun = partial(WeightRegularRNN.cost_reg, self))
