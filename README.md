@@ -30,7 +30,12 @@ Files are organized into several subdirectories (under **lrn2**):
 ### Installation
 To install the lrn2 framework (Linux/Mac), run the following command in your terminal
 
-`sudo python setup.py install` / `sudo python setup_mac.py install`
+```
+git clone https://github.com/OFAI/lrn2.git
+git submodule init
+git submodule update
+sudo python [setup.py | setup_mac.py] install
+```
 
 or download the source and use it in your IDE (feel free to fork). Running the above command may still help to install the required dependencies. 
 
