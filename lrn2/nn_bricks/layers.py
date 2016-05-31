@@ -140,7 +140,7 @@ class FFBase(NNBase):
     def __init__(self, variables, name, input_shape = (), hidden_shape = (), 
                  plot_params = True, plot_dparams = True, **kwargs):
         
-        NNBase.__init__(self, name, plot_params, plot_dparams)
+        NNBase.__init__(self, name, plot_params, plot_dparams, **kwargs)
         
         for key, v in variables.items():
             try:
@@ -1577,7 +1577,7 @@ class ConvDShaping(ConvShaping):
     """
     def __init__(self, variables, name, input_shape, **kwargs):
         FFBase.__init__(self, variables, input_shape = input_shape, 
-                        name = name)
+                        name = name, **kwargs)
         assert input_shape[0] == 1, "Deshaper: Works only for inputs, where shape[0] = 1."
         self.input_shape = input_shape
         self.hidden_shape = ([self.input_shape[0], self.input_shape[1], 1])
