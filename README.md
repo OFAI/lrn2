@@ -34,6 +34,7 @@ To install the lrn2 framework (Linux/Mac), run the following command in your ter
 git clone https://github.com/OFAI/lrn2.git
 git submodule init
 git submodule update
+cd lrn2
 sudo python [setup.py | setup_mac.py] install
 ```
 
