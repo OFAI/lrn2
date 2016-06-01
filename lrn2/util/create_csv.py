@@ -15,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 def create_csv(input_folder, out_file, label_fun=None, value_fun=None,
-                      rec=False, pat="*"):
+                      rec=False, pat="*", incl_dirs = False):
     """
     Creates a csv file listing all files of a folder (subfolders optional).
 
@@ -61,6 +61,7 @@ def create_csv(input_folder, out_file, label_fun=None, value_fun=None,
         for root, _, _ in os.walk(input_folder):
             for fn in glob.glob1(root, pat):
                 f = os.path.join(root, fn)
-                writer.writerow([value_fun(f), label_fun(f)])
+                if not os.path.isdir(f) or incl_dirs:
+                    writer.writerow([value_fun(f), label_fun(f)])
             if not rec:
                 break

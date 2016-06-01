@@ -14,7 +14,7 @@ from lrn2.util.create_csv import create_csv
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-def create_simple_file_list(input_folder, out_file, rec, pat):
+def create_simple_file_list(input_folder, out_file, rec, pat, incl_dirs):
     """
     Creates a csv file listing all files of a folder (subfolders optional).
 
@@ -42,20 +42,23 @@ def create_simple_file_list(input_folder, out_file, rec, pat):
                       out_file=out_file,
                       label_fun=filename,
                       rec=rec,
-                      pat=pat)
+                      pat=pat, incl_dirs=incl_dirs)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "Create a csv file containing a list of files. This file can be used as input to the demo applications.")
 
-    parser.add_argument("output", help = "filename of the resulting csv file")
-
     parser.add_argument("source_folder", help = ("folder containing source files"))
+
+    parser.add_argument("output", help = "filename of the resulting csv file")
 
     parser.add_argument("-r", action = "store_true", default = False,
                        help = "recursively follow subfolders")
 
     parser.add_argument("-p", help = "specify a filename pattern (enclosed by quotes)")
+    
+    parser.add_argument("--include-dirs", action = "store_true", default = False,
+                       help = "include directories in csv file")
 
     args = parser.parse_args()
 
-    create_simple_file_list(args.source_folder, args.output, args.r, args.p);
+    create_simple_file_list(args.source_folder, args.output, args.r, args.p, args.include_dirs);
