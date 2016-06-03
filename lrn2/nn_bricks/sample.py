@@ -35,7 +35,7 @@ class Sampler(object):
         initial state of sampling chains
     """
     def __init__(self, n_samples = 1, clamp_mask = None, clamp_v_config = None,
-                 initial_samples = None):
+                 initial_samples = None, **kwargs):
 
         if self.convolutional:
             LOGGER.warning("In convolutional nets the number of samples is "
@@ -79,7 +79,7 @@ class Sampler(object):
                                               .astype(fx), borrow=True)
 
     def compile_sample_fun(self):
-        """ Compile Gibbs sampling of phantasy particles as function using scan """
+        """ Compile Gibbs sampling of as function using scan """
         k = T.iscalar('k')
 
         result, updates = theano.scan(fn=lambda x :
@@ -87,15 +87,13 @@ class Sampler(object):
                                       outputs_info = self.v_samples,
                                       n_steps = k)
         final_result = result[-1]
-        try:
-            self.sample = theano.function([k, self.variables['input']], 
-                                          outputs=final_result,
-                                          updates=updates,
-                                          allow_input_downcast=True)
-        except UnusedInputError:
-            self.sample = theano.function([k], outputs=final_result,
-                                          updates=updates,
-                                          allow_input_downcast=True)
+#         self.sample = theano.function([k, self.variables['input']], 
+#                                       outputs=final_result,
+#                                       updates=updates,
+#                                       allow_input_downcast=True)
+        self.sample = theano.function([k], outputs=final_result,
+                                      updates=updates,
+                                      allow_input_downcast=True)
 
     def sample_step(self, v_in):
         v_act = self.gibbs_step_(v_in)
@@ -111,7 +109,7 @@ class Sampler(object):
     @clamp_mask.setter
     def clamp_mask(self, value):
         self.clamp_mask_.set_value(value)
-
+ 
     @property
     def clamp_v_config(self):
         return self.clamp_v_config_.get_value()

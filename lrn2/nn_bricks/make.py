@@ -58,7 +58,7 @@ class RBMConvPCD(Notifier,
         MaxNormRegular.__init__(self, **kwargs)
         WeightRegular.__init__(self, **kwargs)
         ActivationCrop.__init__(self, **kwargs)
-        Approximator.__init__(self, gibbs_chains=50, gibbs_steps=2000)
+        Approximator.__init__(self, **kwargs)
         Monitor.__init__(self)
         SerializeLayer.__init__(self)
         self.notify(Notifier.MAKE_FINISHED)
@@ -836,16 +836,6 @@ def make_layer(type_net, name, batch_size, input_shape, filter_shape,
     """
     Creates an NN layer using one of the pre-defined mix-in classes.
 
-    Notes
-    -----
-
-    To add a new layer type:
-
-    - Define a mixed-in class here.
-    - Call that class in make_layer() (see below)
-    - Enter the new type_net in config_spec.ini
-    - Use the new type_net in config_model.ini
-
     Parameters
     ----------
 
@@ -920,7 +910,6 @@ def make_layer(type_net, name, batch_size, input_shape, filter_shape,
 
     """
 
-    
     if convolutional:
         input_sym = T.tensor4(name='input' + name, dtype=fx)
         target_sym = T.tensor4(name='target' + name, dtype=fx)

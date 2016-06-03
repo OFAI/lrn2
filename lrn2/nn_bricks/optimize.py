@@ -10,12 +10,10 @@ import numpy as np
 import theano.tensor as T
 
 from _functools import partial
+from lrn2.util.utils import shape
+from lrn2.nn_bricks.utils import fx
 from _collections import defaultdict
 from lrn2.nn_bricks.notifier import Notifier
-from lrn2.nn_bricks.cost_functions import cross_entropy
-from lrn2.nn_bricks.utils import fx
-from lrn2.util.utils import ensure_gpu_batch, ensure_ndarray, ensure_list, shape
-import sys
 
 LOGGER = logging.getLogger(__name__)
 
@@ -73,6 +71,8 @@ class Optimizer(object):
         self.params = params
         
         LOGGER.debug("Optimizing parameter(s): {0}".format(params))
+        param_count = np.sum(np.asarray([np.prod(p.get_value().shape) for p in params]))
+        LOGGER.debug("Number parameter(s): {0}".format(param_count))
         LOGGER.debug("Given variable(s): {0}".format(variables))
         if data is not None:
             LOGGER.debug("Given data: {0}".format([[k, shape(data[k])] for k in data.keys()]))

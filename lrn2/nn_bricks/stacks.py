@@ -12,6 +12,7 @@ import theano.tensor as T
 from _functools import partial
 from lrn2.nn_bricks.utils import fx
 from lrn2.nn_bricks.plot import Plotter
+from lrn2.nn_bricks.monitor import Monitor
 from lrn2.nn_bricks.layers import FFBase, RBMBase
 from lrn2.nn_bricks.notifier import Notifier, NotifierForwarder
 from lrn2.nn_bricks.regularize import RegularizationCollector
@@ -19,7 +20,6 @@ from lrn2.nn_bricks.cost import CostSquaredError, CostKL,\
     CostCategoricCrossEntropy, CostCrossEntropy, CostReconErr,\
     CostReconErrDenoise, CostCrossEntropyAuto
 from lrn2.nn_bricks.serialize import SerializeStack
-from lrn2.nn_bricks.monitor import Monitor
 from lrn2.nn_bricks.generate import NNFeatures, DeepDreamer
 
 LOGGER = logging.getLogger(__name__)

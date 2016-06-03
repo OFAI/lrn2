@@ -62,7 +62,6 @@ class NNBase(object):
         self.plot_dparams = plot_dparams
         self.plot_params = plot_params
         self.tiling_params = tiling
-
         if isinstance(self, Plotter) and not self.plotting_registered:
             register_plot = partial(NNBase.register_plotting, self)
             self.callback_add(register_plot, Notifier.REGISTER_PLOTTING)
@@ -1265,7 +1264,6 @@ class LSTM(FFBase):
                         input_shape = input_shape,
                         hidden_shape = (n_hidden,),
                         **kwargs)
-
         if params is None:
             # parameters of the model
             self.Wxc = theano.shared(name='Wxc',
@@ -1305,7 +1303,7 @@ class LSTM(FFBase):
             self.bc = theano.shared(name='bc',
                                    value=np.zeros(n_hidden, dtype=fx))
             self.bo = theano.shared(name='bo',
-                                   value=np.zeros(n_out, dtype=fx))
+                                   value=np.zeros(n_hidden, dtype=fx))
             self.h0 = theano.shared(name='h0',
                                     value=np.zeros(n_hidden, dtype=fx))
             self.params = [self.Wxc, self.Wxi, self.Wxf, self.Why, self.Whmo, 
@@ -1323,7 +1321,6 @@ class LSTM(FFBase):
         self.callback_add(compile_own_f, Notifier.COMPILE_FUNCTIONS)
         register_plot = partial(LSTM.register_plotting_compiled, self)
         self.callback_add(register_plot, Notifier.REGISTER_PLOTTING)
-
 
     def recurrence(self, v_in, h_before, state_before):
         return [self.activation_h_t(v_in, h_before, state_before),
