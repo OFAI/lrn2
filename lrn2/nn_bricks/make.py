@@ -18,7 +18,8 @@ from lrn2.nn_bricks.generate import NNFeatures
 from lrn2.nn_bricks.notifier import Notifier
 from lrn2.nn_bricks.serialize import SerializeLayer
 from lrn2.nn_bricks.cost import CostCD, CostPCD, CostReconErr, CostCrossEntropy,\
-    CostSquaredError, CostCategoricCrossEntropy, CostCategoricCrossEntropyAuto
+    CostSquaredError, CostCategoricCrossEntropy, CostCategoricCrossEntropyAuto,\
+    CostLogLikelihoodBinomial
 from lrn2.nn_bricks.layers import ToDense, MaxPooler, MaxPoolerOverlapping, CRBM,\
     RBM, RNN, CNN, NN_BN, CNN_BN, DCNN, TransitionFunc, ConvShaping,\
     ConvDShaping, Normalizing, UpSampling, NNAuto, RNN_Gated, LSTM
@@ -591,7 +592,7 @@ class RNNGated(Notifier, UnitsNNTanh,
         self.notify(Notifier.REGISTER_PLOTTING)
         
 class RNNLSTM(Notifier, UnitsNNTanh,
-           LSTM, CostCrossEntropy, SparsityLee,
+           LSTM, CostLogLikelihoodBinomial, SparsityLee,
            WeightRegularRNN,
            SerializeLayer, Monitor, Plotter):
     """ Long-short term memory, Hochreiter et. al. 1997 """
@@ -601,7 +602,7 @@ class RNNLSTM(Notifier, UnitsNNTanh,
         UnitsNNTanh.__init__(self)
         
         LSTM.__init__(self, act_fun_out=lambda x : T.nnet.sigmoid(x), **kwargs)
-        CostCrossEntropy.__init__(self, **kwargs)
+        CostLogLikelihoodBinomial.__init__(self, **kwargs)
         SparsityLee.__init__(self, **kwargs)
         WeightRegularRNN.__init__(self, **kwargs)
         SerializeLayer.__init__(self)

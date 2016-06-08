@@ -106,40 +106,41 @@ class Approximator(Sampler):
             self.compile_entropy_fun()
         return self.entropy_fun()
 
-    def probs_elemwise(self, v):
+    def binomial_elemwise(self, y, t):
         # specify broadcasting dimensions (multiple inputs to multiple
-        #phantasy particles)
+        # density estimations)
         if self.convolutional:
-            phant_shuf = self.v_samples.dimshuffle('x', 0, 1, 2, 3)
-            v_shuf = v.dimshuffle(0, 'x', 1, 2, 3)
+            est_shuf = y.dimshuffle('x', 0, 1, 2, 3)
+            v_shuf = t.dimshuffle(0, 'x', 1, 2, 3)
         else:
-            phant_shuf = self.v_samples.dimshuffle('x', 0, 1)
-            v_shuf = v.dimshuffle(0, 'x', 1)
+            est_shuf = y.dimshuffle('x', 0, 1)
+            v_shuf = t.dimshuffle(0, 'x', 1)
 
-        # Calculate probabilities of current v's to be sampled given phant parts
+        # Calculate probabilities of current v's to be sampled given estimations
         # Real-valued observation -> Binomial distribution
         # Binomial coefficient (factorial(x) == gamma(x+1))
         bin_coeff = 1 / (T.gamma(1 + v_shuf) * T.gamma(2 - v_shuf))
-        pw_probs = bin_coeff * T.pow(phant_shuf, v_shuf) * T.pow(1. - phant_shuf,
+        pw_probs = bin_coeff * T.pow(est_shuf, v_shuf) * T.pow(1. - est_shuf,
                                                                  1. - v_shuf)
         return pw_probs
         
-    def build_prob_graph(self, v):
-        pw_probs = self.probs_elemwise(v)
+    def log_likelihood(self, y, t):
+        pw_probs = self.binomial_elemwise(y, t)
         # Multiply and average probs
         if self.convolutional:
 #             return T.prod(pw_probs, axis=(2,3,4))
             return T.mean(T.sum(T.log(pw_probs), axis=(2,3,4)), axis = 0)
         else:
-            return T.mean(T.sum(T.log(pw_probs), axis=2), axis=0) 
+            return T.mean(T.sum(T.log(pw_probs), axis=2), axis=0)
         
     def compile_prob_fun(self):
         v = T.tensor4("v_in") if self.convolutional else T.matrix("v_in")
-        self.prob_fun = theano.function([v], self.build_prob_graph(v),
+        self.prob_fun = theano.function([v], 
+                                        self.log_likelihood(self.v_samples, v),
                                         on_unused_input='warn')
 
     def compile_entropy_fun(self):
-        p = self.probs_elemwise(self.v_samples)
+        p = self.v_samples
 
         h = -p*T.log2(p)-(1-p)*T.log2(1-p)
         h = T.switch(T.isnan(h), 0., h)

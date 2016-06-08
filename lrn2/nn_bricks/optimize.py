@@ -94,6 +94,8 @@ class Optimizer(object):
         self.lr = theano.shared(np.cast[fx](lr))
         self.mom = theano.shared(np.cast[fx](momentum))
         self.grad_clip = grad_clip
+        
+        print "grad_clip", grad_clip
         self.nan_protection = nan_protection
 
         self.batch_size = batch_size
@@ -198,7 +200,6 @@ class Optimizer(object):
         """
         count = 0
         cost_sum = 0
-        
         if self.data is not None or self.notifier is not None:
             while True:
                 # get next mini-batch

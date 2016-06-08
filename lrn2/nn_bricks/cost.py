@@ -415,6 +415,66 @@ class CostKL(Cost):
     def cost(self):
         return kl(self.target, self.output(self.input))
 
+class CostLogLikelihoodBinomial(Cost):
+    """
+    Log-lokelihood cost.
+    Built for single layers and stacks.
+    
+    Parameters
+    ----------
+    
+    var1 : theano.tensor, optional
+        symbolic variable for actual output. If None, the output of the net
+        is used.
+        
+    var2 : theano.tensor
+        symbolic variable for target. If None, the default self.target is used.
+                
+    """
+    def __init__(self, var1 = None, var2 = None, **kwargs):
+        Cost.__init__(self, **kwargs)
+        
+        if var1 == None:
+            var1 = self.output(self.input)
+        if var2 == None:
+            var2 = self.target
+        self.var1 = var1
+        self.var2 = var2
+        
+        self.log_like = theano.function([self.input, self.target],
+                                        T.sum(T.log(self.binomial_elemwise(self.output(self.input), self.target)), axis=1),
+                                        allow_input_downcast = True)
+        
+    def binomial_elemwise(self, y, t):
+        # specify broadcasting dimensions (multiple inputs to multiple
+        # density estimations)
+        if self.convolutional:
+            est_shuf = y.dimshuffle(0, 1, 2, 3)
+            v_shuf = t.dimshuffle(0, 1, 2, 3)
+        else:
+            est_shuf = y.dimshuffle(0, 1)
+            v_shuf = t.dimshuffle(0, 1)
+
+        # Calculate probabilities of current v's to be sampled given estimations
+        # Real-valued observation -> Binomial distribution
+        # Binomial coefficient (factorial(x) == gamma(x+1))
+        bin_coeff = 1 / (T.gamma(1 + v_shuf) * T.gamma(2 - v_shuf))
+        pw_probs = bin_coeff * T.pow(est_shuf, v_shuf) * T.pow(1. - est_shuf,
+                                                                 1. - v_shuf)
+        return pw_probs
+        
+    def log_likelihood(self, y, t):
+        pw_probs = self.binomial_elemwise(y, t)
+        # Multiply and average probs
+        if self.convolutional:
+#             return T.prod(pw_probs, axis=(2,3,4))
+            return T.mean(T.sum(T.log(pw_probs), axis=(1,2,3)), axis = 0)
+        else:
+            return T.mean(T.sum(T.log(pw_probs), axis=1), axis=0)
+        
+    def cost(self):
+        return -T.mean(self.log_likelihood(self.var1, self.var2))
+    
 class CostCrossEntropy(Cost):
     """
     Cross entropy. Targets have to be of set {0,1}, predictions of range (0,1).

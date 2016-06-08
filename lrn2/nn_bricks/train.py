@@ -252,27 +252,24 @@ def train_cached(net, data, config, run_keyword, validation = None,
         LOGGER.addHandler(handler)
 
     config_bp = config["STACK"]
-
-    n_epochs = config_bp["epochs"]
-    lr = config_bp["learning_rate"]
-    img_interval = config_bp["img_interval"]
-    
-    dump_interval = config_bp["dump_interval"]
-    reduce_lr = config_bp["reduce_lr"]
-    batch_size = config_bp["batch_size"]
-    momentum = config_bp["momentum"]
+    kwargs.update(config_bp)
 
     tmp_fn = os.path.join(out_dir, "{0}_train_cache_{1}.pyc.bz".format(net.name,
                                                                        postfix))
 
+    if re_train:
+        net.reset_monitor()
+        
+    args = {'validation': validation,
+            'out_dir': out_dir, 
+            'tile_fun': tile_fun, 
+            'exclude': exclude}
+    kwargs.update(args)
     return compute_w_backup(net, tmp_fn, train,
                             refresh_cache = re_train, load_only = load_only,
                             load_existing = load_existing,
                             continue_existing = continue_existing,
-                            args = (net, data, batch_size, n_epochs, lr, 
-                                    reduce_lr, momentum, validation, out_dir, 
-                                    img_interval, dump_interval, tile_fun, 
-                                    exclude), **kwargs)
+                            args = (net, data), **kwargs)
 
 
 
@@ -293,7 +290,8 @@ def validate(net, validation, batch_size):
     cost_valid = 1.0 * cost_valid_sum / (stop // batch_size)
     return cost_valid
 
-def train(net, data, batch_size, n_epochs, lr, reduce_lr = False,
+def train(net, data, batch_size = 200, n_epochs = 500, learning_rate = 1e-4, 
+          reduce_lr = False,
           momentum = 0.0, validation = None, out_dir = '.',
           img_interval = -1, dump_interval = -1, tile_fun = lambda x : x,
           exclude = [], plot_zero_epoch = True, grad_clip = None,
@@ -323,7 +321,7 @@ def train(net, data, batch_size, n_epochs, lr, reduce_lr = False,
     n_epochs : int
         number of epochs to train the net
 
-    lr : float
+    learning_rate : float
         learning rate (initial, can be reduced during training by setting
         reduce_lr = True)
 
@@ -364,8 +362,8 @@ def train(net, data, batch_size, n_epochs, lr, reduce_lr = False,
     assert data is not None or len(net.callbacks[Notifier.GET_DATA]) > 0, \
         "Either set the data parameter, and/or register a 'get_data' callback."
 
+    
     LOGGER.info("\nTrain {0}: {1}...".format(net.name, type(net)))
-
     net.notify(Notifier.TRAINING_START)
 
     if tile_fun is None:
@@ -373,6 +371,7 @@ def train(net, data, batch_size, n_epochs, lr, reduce_lr = False,
 
     params = [p for p in net.params if id(p) not in [id(e) for e in exclude]]
 
+    lr = learning_rate
     opt = Optimizer(net.cost(), params, net.variables, data,
                     batch_size, lr = lr, momentum = momentum,
                     notifier = net, grad_clip = grad_clip)
@@ -401,8 +400,8 @@ def train(net, data, batch_size, n_epochs, lr, reduce_lr = False,
 
             cost_curr = opt.train()
 
-            if hasattr(net, 'validate'):
-                cost_curr = float(net.validate(*(data_batch.values())))
+#             if hasattr(net, 'validate'):
+#                 cost_curr = float(net.validate(*(data_batch.values())))
 
             if isinstance(net, Monitor):
                 net.monitor_cost(cost_curr)
