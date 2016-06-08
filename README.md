@@ -44,7 +44,7 @@ or download the source and use it in your IDE (feel free to fork). Running the a
 
 - In the (extracted) tar archive, browse to an example folder **examples/[example_name]**. Run one of the examples by entering
 `python run_demo.py [any_run_keyword] config_model.ini [options]`, or with the `--help` flag for help on the specific example. For the **mnist_** examples, no further parameters are needed.
-The other two examples need the path to a .csv file with (monophonic) melodies (e.g. the [Essen Folksong Collection](http://www.esac-data.org/)) as additional parameter. You can generate such a .csv file by using `python create_csv_file.py` in `lrn2/util`.
+The other two examples need the path to a .csv file with (monophonic) melodies (e.g. the [Essen Folksong Collection](http://www.esac-data.org/)) as additional parameter. You can generate such a .csv file by using `python create_csv_filelist.py` in `lrn2/util`.
 - If some import errors are shown, ensure that all dependencies are included in the environment variable $PYTHONPATH.
 
 ### Uninstall lrn2
