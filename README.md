@@ -24,7 +24,7 @@ Files are organized into several subdirectories (under **lrn2**):
 
 ### Links
 * [Documentation](http://lrn2cre8.ofai.at/lrn2/doc/)
-* [Tutorials](https://github.com/OFAI/lrn2/tree/github/tutorials)
+* [Tutorials](https://github.com/OFAI/lrn2/tree/github_orphan/tutorials)
 * [Project website](http://lrn2cre8.eu/?q=workpackage1/deliverable1.1)
 
 ### Installation
