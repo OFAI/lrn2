@@ -50,7 +50,7 @@ class NNBase(object):
     """
     plotting_registered = False
     def __init__(self, name, plot_params = True, plot_dparams = True, 
-                 tiling = 'default', **kwargs):
+                 tiling = 'corpus', **kwargs):
         rng = np.random.RandomState()
         self.t_rng = RandomStreams(rng.randint(2 ** 30))
 
@@ -351,7 +351,11 @@ class NN(FFBase):
             v.set_value(value[i])
         
     def register_plotting_compiled(self):
-        tiling = "corpus" if self.convolutional else "default"
+        if self.tiling_params:
+            tiling = self.tiling_params
+        else:
+            tiling = "corpus" if self.convolutional else "default"
+            
         self.register_plot(lambda data : self.out(*(data.values())), 'out',
                            tiling = tiling, forward = False,
                            name_net = self.name)
@@ -621,8 +625,13 @@ class CNN(FFBase):
             v.set_value(value[i])
         
     def register_plotting_compiled(self):
+        if self.tiling_params:
+            tiling = self.tiling_params
+        else:
+            tiling = "corpus" if self.convolutional else "default"
+            
         self.register_plot(lambda data : self.out(*(data.values())), 'out',
-                           tiling = 'default', forward = False,
+                           tiling = tiling, forward = False,
                            name_net = self.name)
         self.register_plot(lambda data : self.out(*(data.values())).flatten(), 
                            'out', forward = False, ptype = 'hist',
@@ -1042,15 +1051,20 @@ class RNN(FFBase):
             v.set_value(value[i])
 
     def register_plotting_compiled(self):
+        if self.tiling_params:
+            tiling = self.tiling_params
+        else:
+            tiling = "corpus" if self.convolutional else "default"
+            
         self.register_plot(lambda data : self.out(data['input']), 'out',
                            name_net = self.name,
-                           tiling = 'default', forward = False)
+                           tiling = tiling, forward = False)
         self.register_plot(lambda data : self.out(data['input']), 'out',
                            name_net = self.name,
                            ptype = 'hist', forward = False)
         self.register_plot(lambda data : self.hact(*(data.values())), 'hact',
                            name_net = self.name,
-                           tiling = 'default')
+                           tiling = tiling)
         self.register_plot(lambda data : self.hact(*(data.values())), 'hact',
                            name_net = self.name,
                            ptype = 'hist')
@@ -1147,6 +1161,18 @@ class RNN_Gated(FFBase):
         self.callback_add(register_plot, Notifier.REGISTER_PLOTTING)
 
 
+    def recurrence_gen(self, v_in, h_before):
+        o = self.output_t(v_in, h_before)
+        sample = T.cast(T.gt(o, self.t_rng.uniform((64,),0,1)),fx)
+        return [sample,
+                self.activation_h_t(v_in, h_before)]
+        
+    def generate_(self, v0, n_steps):
+        [s, _], _ = theano.scan(fn=self.recurrence_gen,
+                                   outputs_info=[v0, self.h0],
+                                   n_steps=n_steps)
+        return s
+
     def recurrence(self, v_in, h_before):
         return [self.activation_h_t(v_in, h_before),
                 self.output_t(v_in, h_before)]
@@ -1158,6 +1184,8 @@ class RNN_Gated(FFBase):
                                 outputs_info=[self.h0, None],
                                 n_steps=v_in.shape[0])
         return s
+    
+    
 
     def activation_h(self, v_in):
         [h, _], _ = theano.scan(fn=self.recurrence,
@@ -1206,15 +1234,20 @@ class RNN_Gated(FFBase):
             v.set_value(value[i])
 
     def register_plotting_compiled(self):
+        if self.tiling_params:
+            tiling = self.tiling_params
+        else:
+            tiling = "corpus" if self.convolutional else "default"
+            
         self.register_plot(lambda data : self.out(data['input']), 'out',
                            name_net = self.name,
-                           tiling = 'default', forward = False)
+                           tiling = tiling, forward = False)
         self.register_plot(lambda data : self.out(data['input']), 'out',
                            name_net = self.name,
                            ptype = 'hist', forward = False)
         self.register_plot(lambda data : self.hact(*(data.values())), 'hact',
                            name_net = self.name,
-                           tiling = 'default')
+                           tiling = tiling)
         self.register_plot(lambda data : self.hact(*(data.values())), 'hact',
                            name_net = self.name,
                            ptype = 'hist')
@@ -1225,6 +1258,11 @@ class RNN_Gated(FFBase):
                                     self.activation_h(self.input),
                                     allow_input_downcast = True,
                                     on_unused_input = 'ignore')
+        v0 = T.vector('v0', dtype = fx)
+        n_steps = T.scalar('n_steps', dtype='int32')
+        self.generate = theano.function([v0, n_steps],
+                                        self.generate_(v0, n_steps),
+                                        allow_input_downcast = True)
         
 class LSTM(FFBase):
     """
@@ -1335,6 +1373,19 @@ class LSTM(FFBase):
                                 n_steps=v_in.shape[0])
         return s
 
+    def recurrence_gen(self, v_in, h_before, state_before):
+        o = self.output_t(v_in, h_before)
+        sample = T.cast(T.gt(o, self.t_rng.uniform((64,),0,1)),fx)
+        return [sample,
+                self.activation_h_t(v_in, h_before, state_before),
+                self.state_t(v_in, h_before, state_before)]
+        
+    def generate_(self, v0, n_steps):
+        [s, _, _], _ = theano.scan(fn=self.recurrence_gen,
+                                   outputs_info=[v0, self.h0, self.h0],
+                                   n_steps=n_steps)
+        return s
+
     def activation_h(self, v_in):
         [h, _, _], _ = theano.scan(fn=self.recurrence,
                                 sequences=v_in,
@@ -1392,7 +1443,7 @@ class LSTM(FFBase):
     def register_plotting_compiled(self):
         self.register_plot(lambda data : self.out(data['input']), 'out',
                            name_net = self.name,
-                           tiling = 'default', forward = False)
+                           tiling = 'corpus', forward = False)
         self.register_plot(lambda data : self.out(data['input']), 'out',
                            name_net = self.name,
                            ptype = 'hist', forward = False)
@@ -1409,6 +1460,11 @@ class LSTM(FFBase):
                                     self.activation_h(self.input),
                                     allow_input_downcast = True,
                                     on_unused_input = 'ignore')
+        v0 = T.vector('v0', dtype = fx)
+        n_steps = T.scalar('n_steps', dtype='int32')
+        self.generate = theano.function([v0, n_steps],
+                                        self.generate_(v0, n_steps),
+                                        allow_input_downcast = True)
         
 class ToDense(FFBase):
     '''
