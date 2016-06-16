@@ -43,8 +43,10 @@ def emd(x, y, xw=None, yw=None, metric='euclidean', distances=None):
         amount earth leftover)
     
     """
-    assert len(x) == len(xw), "number of points and number of weights have to match (x)"
-    assert len(y) == len(yw), "number of points and number of weights have to match (y)"
+    if xw is not None:
+        assert len(x) == len(xw), "number of points and number of weights have to match (x)"
+    if yw is not None:
+        assert len(y) == len(yw), "number of points and number of weights have to match (y)"
     assert xw == None or yw != None, "assign weights for either both point sets or none"
     assert metric == 'precomputed' or distances == None, \
                 "set metric='precomputed' when using a custom distance matrix"
