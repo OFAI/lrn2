@@ -27,9 +27,18 @@ Files are organized into several subdirectories (under **lrn2**):
 * [Tutorials](https://github.com/OFAI/lrn2/tree/github_orphan/tutorials)
 * [Project website](http://lrn2cre8.eu/?q=workpackage1/deliverable1.1)
 
+### Requirements
+For convolution, [NVIDIA cuDNN](https://developer.nvidia.com/cudnn) is required.
+
 ### Installation
+
 To install the lrn2 framework (Linux/Mac), run the following command in your terminal
 
+```
+cd /usr/local/lib/python2.7/dist-packages/
+sudo pip install -e git+https://github.com/OFAI/lrn2.git#egg=lrn2
+```
+or manually
 ```
 git clone https://github.com/OFAI/lrn2.git
 cd lrn2
@@ -38,7 +47,7 @@ git submodule update
 sudo python [setup.py | setup_mac.py] install
 ```
 
-or download the source and use it in your IDE (feel free to fork). Running the above command may still help to install the required dependencies. 
+or download the source and use it in your IDE (feel free to fork). Running the above commands may still help to install the required dependencies. 
 
 **Test the lrn2 framework:**
 
@@ -213,3 +222,4 @@ class FFNNCrossEntropy(Notifier, NNStack, CostCrossEntropy, SerializeStack, Moni
 Example of a feed-forward NN stack with cross-entropy cost as a combination of some mix-in classes.
 #### Acknowledgments
 The project Lrn2Cre8 acknowledges the financial support of the  Future  and  Emerging  Technologies  (FET)  programme within the Seventh Framework Programme for Research of the European Commission, under FET grant number 610859.
+
