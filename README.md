@@ -35,7 +35,7 @@ For convolution, [NVIDIA cuDNN](https://developer.nvidia.com/cudnn) is required.
 To install the lrn2 framework (Linux/Mac), run the following command in your terminal
 
 ```
-cd /usr/local/lib/python2.7/dist-packages/
+(optional) cd /usr/local/lib/python2.7/dist-packages/
 sudo pip install -e git+https://github.com/OFAI/lrn2.git#egg=lrn2
 ```
 or manually
