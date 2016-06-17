@@ -43,6 +43,7 @@ def emd(x, y, xw=None, yw=None, metric='euclidean', distances=None):
         amount earth leftover)
     
     """
+    assert len(x) > 0 and len(y) > 0, "point set cannot be empty"
     if xw is not None:
         assert len(x) == len(xw), "number of points and number of weights have to match (x)"
     if yw is not None:
