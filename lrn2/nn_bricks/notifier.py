@@ -24,7 +24,7 @@ class Notifier(object):
     # callbacks are called, after each trained batch
     BATCH_FINISHED = "batch_finished"
     
-    # EPOCH_FINISHED kwargs: curr_epoch, n_epochs
+    # EPOCH_FINISHED kwargs: curr_epoch, epochs
     EPOCH_FINISHED = "epoch_finished"
     
     # callbacks are called, when the gradient was calculated

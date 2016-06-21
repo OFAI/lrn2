@@ -20,7 +20,6 @@ from lrn2.data.formats.iterable import load_iter_items
 from lrn2.data.domain.raw import RawVP
 from _functools import partial
 import copy
-import sys
 
 LOGGER = logging.getLogger(__name__)
 
@@ -120,7 +119,7 @@ def train_layer_wise(net, data, config, run_keyword, validation = None,
     
     for i, (layer_name, curr_sec) in enumerate(config["TOPOLOGY"].items()):
         batch_size = curr_sec['batch_size']
-        n_epochs = curr_sec['epochs']
+        epochs = curr_sec['epochs']
         lr = curr_sec['learning_rate']
         reduce_lr = curr_sec['reduce_lr']
         momentum = curr_sec["momentum"]
@@ -132,7 +131,7 @@ def train_layer_wise(net, data, config, run_keyword, validation = None,
                                   "{0}_train_cache_{1}.pyc.bz"
                                   .format(layer_name, postfix))
             net[i] = compute_w_backup(net[i], tmp_fn, train,
-                                      (net[i], data, batch_size, n_epochs, lr,
+                                      (net[i], data, batch_size, epochs, lr,
                                        reduce_lr, momentum, validation,
                                        out_dir_layer, img_interval,
                                        dump_interval, tile_fun, exclude),
@@ -290,7 +289,7 @@ def validate(net, validation, batch_size):
     cost_valid = 1.0 * cost_valid_sum / (stop // batch_size)
     return cost_valid
 
-def train(net, data, batch_size = 200, n_epochs = 500, learning_rate = 1e-4, 
+def train(net, data, batch_size = 200, epochs = 500, learning_rate = 1e-4, 
           reduce_lr = False,
           momentum = 0.0, validation = None, out_dir = '.',
           img_interval = -1, dump_interval = -1, tile_fun = lambda x : x,
@@ -318,7 +317,7 @@ def train(net, data, batch_size = 200, n_epochs = 500, learning_rate = 1e-4,
         the mini-batch size for training. if data == None, batch_size does
         not matter.
 
-    n_epochs : int
+    epochs : int
         number of epochs to train the net
 
     learning_rate : float
@@ -383,7 +382,7 @@ def train(net, data, batch_size = 200, n_epochs = 500, learning_rate = 1e-4,
     LOGGER.info("Training starts in epoch {0}.".format(curr_epoch))
 
     try:
-        for curr_epoch in range(curr_epoch, n_epochs):
+        for curr_epoch in range(curr_epoch, epochs):
             if data is not None:
                 data_batch = {}
                 for key, value in data.items():
@@ -408,14 +407,14 @@ def train(net, data, batch_size = 200, n_epochs = 500, learning_rate = 1e-4,
 
             # reduce learning rate
             if reduce_lr:
-                opt.learning_rate = lr - curr_epoch * (lr / n_epochs)
+                opt.learning_rate = lr - curr_epoch * (lr / epochs)
 
             end_time = time.time()
             elapsed_epoch = end_time - start_time
 
             LOGGER.info("finished epoch {0}/{3} in {1:.2f} seconds (lr: {4:.3e}; cost: {2:.4f})"
                          .format(curr_epoch+1, elapsed_epoch, cost_curr,
-                                 n_epochs, float(opt.learning_rate)))
+                                 epochs, float(opt.learning_rate)))
 
             if validation is not None and hasattr(net, 'validate'):
                 cost_valid = validate(net, validation, batch_size)
@@ -438,7 +437,7 @@ def train(net, data, batch_size = 200, n_epochs = 500, learning_rate = 1e-4,
                 
             if isinstance(net, Notifier):
                 net.notify(Notifier.EPOCH_FINISHED, curr_epoch = curr_epoch, 
-                           n_epochs = n_epochs)
+                           epochs = epochs)
 
 
     except KeyboardInterrupt:
