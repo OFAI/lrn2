@@ -53,7 +53,7 @@ def emd(x, y, xw=None, yw=None, metric='euclidean', distances=None):
                 "set metric='precomputed' when using a custom distance matrix"
     
     if metric is not 'precomputed':             
-        distances = squareform(pdist(np.vstack((x,y)), metric='euclidean'))
+        distances = squareform(pdist(np.vstack((x,y)), metric=metric))
     else:
         assert distances != None, "pass a distance matrix when metric='precomputed'"
         
