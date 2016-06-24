@@ -9,7 +9,6 @@ import logging
 
 from math import ceil
 from itertools import combinations
-from gammatone.gtgram import gtgram
 from lrn2.nn_bricks.utils import fx, load_pyc_bz, save_pyc_bz
 from scipy.signal.signaltools import convolve2d
 from lrn2.data.domain.viewpoint import ViewPoint
@@ -1435,16 +1434,13 @@ class GammatoneVP(ViewPoint):
 
 
     def extract_gammatone(self, audio_fn):
-        import matplotlib.pyplot as plt
         LOGGER.info("extracting gamma representation of {0}".format(audio_fn))
+        from gammatone.gtgram import gtgram
         audio_wave, fs = self.read_audio_audiolab(audio_fn, mono = True)
 
         gtg = gtgram(audio_wave, self.sample_rate, **self.spectrum_options)
         gtg = np.mean(gtg[:150,:15], axis=1)
 
-#         plt.clf()
-#         plt.plot(gtg)
-#         plt.show()
         return gtg
 
 
@@ -1697,8 +1693,8 @@ class GammatoneVPPoly(ViewPoint):
 
 
     def to_gammatone(self, pitches):
-        import matplotlib.pyplot as plt
         LOGGER.info("extracting gamma representation of {0}".format(pitches))
+        from gammatone.gtgram import gtgram
         waves = []
         for pitch in pitches:
             fn = self.get_fn(pitch)
@@ -1734,8 +1730,8 @@ class GammatoneVPPoly(ViewPoint):
 
 
     def extract_gammatone(self, audio_fn):
-        import matplotlib.pyplot as plt
         LOGGER.info("extracting gamma representation of {0}".format(audio_fn))
+        from gammatone.gtgram import gtgram
         audio_wave, fs = self.read_audio_audiolab(audio_fn, mono = True)
 
         gtg = gtgram(audio_wave, self.sample_rate, **self.spectrum_options)
