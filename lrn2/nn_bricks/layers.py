@@ -878,7 +878,7 @@ class CRBM(CNN, RBMBase):
                  params = None, ext_bias = 'v', stride = (1,1), **kwargs):
         RBMBase.__init__(self, variables, name, input_shape, **kwargs)
         CNN.__init__(self, variables, name, input_shape, filter_shape, bias_h,
-                     params, **kwargs)
+                     params, ext_bias, stride, **kwargs)
         
 class CondCRBM(CNN, RBMBase):
     """
