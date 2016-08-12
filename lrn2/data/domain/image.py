@@ -25,7 +25,7 @@ class ImageBinaryVP(ViewPoint):
     @property
     def size(self):
         return self.shape_[0] * self.shape_[1]
-    
+
     @property
     def shape(self):
         return (self.shape_[0], self.shape_[1])
@@ -36,6 +36,8 @@ class ImageBinaryVP(ViewPoint):
         return sp.csr_matrix(data, shape = data.shape)
 
     def repr_to_visual(self, binary_data):
-        data_2d = np.reshape(binary_data, self.shape, order="F")
+        try:
+            data_2d = np.reshape(binary_data, self.shape, order="F")
+        except Exception:
+            data_2d = binary_data
         return data_2d
-    

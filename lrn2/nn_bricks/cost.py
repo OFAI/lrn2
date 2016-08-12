@@ -23,20 +23,20 @@ class Cost(object):
     """
     def __init__(self, **kwargs):
 #         if grad_clip is not None:
-#             self.ins_outs = dict([[key, theano.gradient.grad_clip(value, *grad_clip)] 
+#             self.ins_outs = dict([[key, theano.gradient.grad_clip(value, *grad_clip)]
 #                                    for key, value in self.ins_outs.items()])
         compile_own_f = partial(Cost.compile_functions, self)
         self.callback_add(compile_own_f, Notifier.COMPILE_FUNCTIONS)
 
     def compile_functions(self):
         try:
-            self.validate = theano.function(self.variables.values(), 
+            self.validate = theano.function(self.variables.values(),
                                             self.validate_(),
                                             allow_input_downcast = True,
                                             on_unused_input = 'ignore')
         except AttributeError:
             pass
-        
+
     def validate_(self):
         return self.cost()
 
@@ -48,7 +48,7 @@ class CostRNNPred(Cost):
         Cost.__init__(self, **kwargs)
 
     def cost(self):
-        return cross_entropy(self.output(self.input), 
+        return cross_entropy(self.output(self.input),
                              T.roll(self.input, -1, axis = 0))
 
 class CostCD(Cost):
@@ -144,9 +144,9 @@ class Persistent(object):
             self.callback_add(reset_pps_f, Notifier.EPOCH_FINISHED)
 
     def register_plotting(self):
-        self.register_plot(lambda *args : self.pps.get_value(), label = "pps", 
+        self.register_plot(lambda *args : self.pps.get_value(), label = "pps",
                            name_net = self.name)
-        
+
     @abc.abstractmethod
     def reset_pps(self, dist = 'uniform'):
         raise NotImplementedError("Method supposed to be implemented in the "
@@ -156,16 +156,16 @@ class CostPCD(CostCD, Persistent):
     """
     Persistent Constrastive Divergence (PCD) cost. Training with this cost
     enables RBMs to sample properly. Works for single RBM layers only.
-    
+
     Parameters
     ----------
-    
+
     input_shape : array-like, optional
         input dimensions (if available)
-        
+
     fantasy_particles: int, optional
         number of fantasy particles. If None, the batch size is used
-        
+
     n_cd: int, optional
         gibbs steps for each fantasy particle update (after each batch).
         Should be higher for convolutional nets in order to sample properly.
@@ -176,7 +176,7 @@ class CostPCD(CostCD, Persistent):
         Persistent.__init__(self, reset_pps_int)
 
         self.pps_shape = [fantasy_particles] + list(input_shape)
-        
+
         """Initialize Fantasy particles """
         if len(self.pps_shape) > 2 and (self.pps_shape[3] is None or self.pps_shape[2] is None):
             raise NotImplementedError("PCD cannot yet deal with dynamic "
@@ -201,7 +201,7 @@ class CostPCD(CostCD, Persistent):
         pps_input_step = partial(self.pps_gibbs_step, self.pps.get_value())
         for _ in range(n_cd):
             self.callback_add(pps_input_step, Notifier.BATCH_FINISHED)
-            
+
 #         self.callback_add(lambda **kwargs: LOGGER.debug("fe fantasy particles = {0}".format(\
 #                                                         np.mean(self.free_energy(self.pps.get_value())))),
 #                           Notifier.EPOCH_FINISHED)
@@ -231,21 +231,21 @@ class CostPCD(CostCD, Persistent):
     def validate_(self):
         # This is the cost which is shown during training
         return self.recon_err_(self.input)
-    
+
 class CostPCDFW(CostPCD):
     """
     Persistent Constrastive Divergence (PCD) with fast weights cost.
     Works for single RBM layers only.
-    
+
     Parameters
     ----------
-    
+
     input_shape : array-like, optional
         input dimensions (if available)
-        
+
     fantasy_particles: int, optional
         number of fantasy particles. If None, the batch size is used
-        
+
     n_cd: int, optional
         gibbs steps for each fantasy particle update (after each batch).
         Should be higher for convolutional nets in order to sample properly.
@@ -255,49 +255,49 @@ class CostPCDFW(CostPCD):
                  **kwargs):
         # Initialize fast weights
         self.Wf = theano.shared(self.get_W_init()*0, name='Wf', borrow=True)
-        CostPCD.__init__(self, input_shape, fantasy_particles = fantasy_particles, 
+        CostPCD.__init__(self, input_shape, fantasy_particles = fantasy_particles,
                          n_cd = n_cd,
                          reset_pps_int = reset_pps_int, **kwargs)
         # Initialize learning rate
         self.lrfw_ = theano.shared(np.cast[fx](0.), name = 'lrfw')
-        
+
         def update_Wf():
             W_grad = None
             for p in self.optimizer.gparams:
                 if p.name == "W_grad":
                     W_grad = p
-            
+
             self.Wf.set_value(self.Wf.get_value() * fw_decay - \
                               W_grad.get_value() * self.lrfw)
-        
+
         self.callback_add(lambda *args : update_Wf(),
                           Notifier.BATCH_FINISHED)
-        
+
         if max_lr:
             # Register to increase learning rate from 1/3*max_lr to max_lr over training
-            self.callback_add(lambda **kwargs: self.set_lr(max_lr, 
+            self.callback_add(lambda **kwargs: self.set_lr(max_lr,
                                             kwargs['curr_epoch'], kwargs['n_epochs']),
                                        Notifier.EPOCH_FINISHED)
         # Add fast weights to params (to get stored and updated)
         #self.params += [self.Wf]
-        
+
         self.register_plot(lambda *args : self.Wf.get_value(), label = "fweights",
                            name_net = self.name)
         self.register_plot(lambda *args : self.Wf.get_value(), label = "fweights",
                            ptype = 'hist', name_net = self.name)
-        
+
     def set_lr(self, max_lr, curr_epoch, n_epochs):
         self.lrfw = 1./3 * max_lr + 2./3 * max_lr * (1. * curr_epoch / n_epochs)
-        
-    
+
+
     @property
     def lrfw(self):
         return self.lrfw_.get_value()
-    
+
     @lrfw.setter
     def lrfw(self, val):
         self.lrfw_.set_value(val)
-        
+
     # Gibbs step for fantasy particles with fast weights
     def pps_gibbs_step_fun(self, gibbs_graph):
         return theano.function([self.variables['input']], None,
@@ -305,7 +305,7 @@ class CostPCDFW(CostPCD):
                                givens={self.W : self.W + self.Wf},
                                name = "pps_gibbs_step",
                                on_unused_input='ignore')
-        
+
 
 class CostReconErr(Cost):
     """
@@ -316,20 +316,20 @@ class CostReconErr(Cost):
 
     def __init__(self, **kwargs):
         Cost.__init__(self, **kwargs)
-        
+
     def recon_err_(self, v_in):
         return T.sum((self.recon_(v_in) - v_in) ** 2) / T.cast(v_in.shape[0], fx)
-    
+
     def recon_(self, v_in):
         return self.activation_v(self.activation_h(v_in))
 
     def cost(self):
         return self.recon_err_(self.input)
-    
+
     def validate_(self):
         return CostReconErr.cost(self)
-    
-    
+
+
 class CostReconErrDenoise(Cost):
     """
     Reconstruction Error cost for denoising Auto-Encoders.
@@ -340,17 +340,17 @@ class CostReconErrDenoise(Cost):
     def __init__(self, noise_level = 0.5, **kwargs):
         Cost.__init__(self, **kwargs)
         self.level_corrupt = noise_level
-        
+
     def cost(self):
         return CostReconErrDenoise.recon_err_(self, self.input)
 
     def recon_err_(self, v_in):
         return T.sum((self.recon_(self.corrupt(v_in, self.level_corrupt)) \
                       - v_in) ** 2) / v_in.shape[0]
-    
+
     def recon_(self, v_in):
         return self.activation_v(self.activation_h(v_in))
-    
+
     def corrupt(self, x, level):
         """ This function keeps '1-level' entries of the inputs the same
         and zero-out randomly selected subset of size 'level'
@@ -402,8 +402,8 @@ class CostVariationalAutoencoder(Cost):
         logsig = self.logsigma_out(self.input)
         kl_div = 0.5 * T.sum(1 + 2*logsig - T.sqr(mu) - T.exp(2 * logsig))
         return kl_div * -1
-    
-    
+
+
 class CostKL(Cost):
     """
     Kullback-Leibler divergence cost (best used with softmax units).
@@ -411,7 +411,7 @@ class CostKL(Cost):
     """
     def __init__(self, **kwargs):
         Cost.__init__(self, **kwargs)
-        
+
     def cost(self):
         return kl(self.target, self.output(self.input))
 
@@ -419,32 +419,32 @@ class CostLogLikelihoodBinomial(Cost):
     """
     Log-lokelihood cost.
     Built for single layers and stacks.
-    
+
     Parameters
     ----------
-    
+
     var1 : theano.tensor, optional
         symbolic variable for actual output. If None, the output of the net
         is used.
-        
+
     var2 : theano.tensor
         symbolic variable for target. If None, the default self.target is used.
-                
+
     """
     def __init__(self, var1 = None, var2 = None, **kwargs):
         Cost.__init__(self, **kwargs)
-        
+
         if var1 == None:
             var1 = self.output(self.input)
         if var2 == None:
             var2 = self.target
         self.var1 = var1
         self.var2 = var2
-        
+
         self.log_like = theano.function([self.input, self.target],
                                         T.sum(T.log(self.binomial_elemwise(self.output(self.input), self.target)), axis=1),
                                         allow_input_downcast = True)
-        
+
     def binomial_elemwise(self, y, t):
         # specify broadcasting dimensions (multiple inputs to multiple
         # density estimations)
@@ -462,7 +462,7 @@ class CostLogLikelihoodBinomial(Cost):
         pw_probs = bin_coeff * T.pow(est_shuf, v_shuf) * T.pow(1. - est_shuf,
                                                                  1. - v_shuf)
         return pw_probs
-        
+
     def log_likelihood(self, y, t):
         pw_probs = self.binomial_elemwise(y, t)
         # Multiply and average probs
@@ -471,34 +471,34 @@ class CostLogLikelihoodBinomial(Cost):
             return T.mean(T.sum(T.log(pw_probs), axis=(1,2,3)), axis = 0)
         else:
             return T.mean(T.sum(T.log(pw_probs), axis=1), axis=0)
-        
+
     def cost(self):
         return -T.mean(self.log_likelihood(self.var1, self.var2))
-    
+
 class CostCrossEntropy(Cost):
     """
     Cross entropy. Targets have to be of set {0,1}, predictions of range (0,1).
     (works fine with sigmoid units).
     Works for single layers and stacks.
-    
+
     Parameters
     ----------
-    
+
     var1 : theano.tensor, optional
         symbolic variable for actual output. If None, the output of the net
         is used.
-        
+
     var2 : theano.tensor
         symbolic variable for target. If None, the default self.target is used.
-        
+
     scale : boolean
         tells if output should be scaled, so that it never reaches 0 or 1
         (to prevent NaNs)
-        
+
     """
     def __init__(self, var1 = None, var2 = None, scale = True, **kwargs):
         Cost.__init__(self, **kwargs)
-        
+
         if var1 == None:
             var1 = self.output(self.input)
         if var2 == None:
@@ -506,13 +506,13 @@ class CostCrossEntropy(Cost):
         self.var1 = var1
         self.var2 = var2
         self.scale = scale
-        
+
     def cost(self):
         eps = 1e-8
         if self.scale:
             return cross_entropy(eps + self.var1 * (1 - 2*eps), self.var2)
         return cross_entropy(self.var1, self.var2)
-    
+
     def validate_(self):
         eps = 1e-8
         if self.scale:
@@ -522,10 +522,10 @@ class CostCrossEntropy(Cost):
 class CostMaxLikelihood(Cost):
     def __init__(self, **kwargs):
         Cost.__init__(self, **kwargs)
-        
+
     def cost(self):
         return -T.log(T.mean(self.output(self.input)))
-        
+
 class CostCategoricCrossEntropy(Cost):
     """
     Useful for multi-class targets (best used with softmax units)

@@ -49,35 +49,35 @@ class Optimizer(object):
 
     momentum : float, optional
         the momentum
-        
+
     grad_clip : float, optional
         clips gradients before updating the parameters
         (at the leafs of the graph). Default = None
 
     nan_protection : boolean, optional
         replaces NaNs in the gradient with 0. Default = True
-        
+
     notifier : lrn2.nn_bricks.Notifier
         an external notifier which contains callbacks reacting on
         Notifier.LEARNING_RATES, Notifier.PARAM_MULT, Notifier.MOMENTUM,
         Notifier.GRADIENT_CALCULATED
         Attention: Notifier.GET_DATA callbacks will be updated by the Optimizer!
-        
+
     """
     def __init__(self, cost, params, variables, data, batch_size, lr,
                  momentum = 0., grad_clip = None,
                  nan_protection = True, notifier = None):
 
         self.params = params
-        
+
         LOGGER.debug("Optimizing parameter(s): {0}".format(params))
         param_count = np.sum(np.asarray([np.prod(p.get_value().shape) for p in params]))
         LOGGER.debug("Number parameter(s): {0}".format(param_count))
         LOGGER.debug("Given variable(s): {0}".format(variables))
         if data is not None:
             LOGGER.debug("Given data: {0}".format([[k, shape(data[k])] for k in data.keys()]))
-        
-        self.gparams = [theano.shared(x.get_value() * 
+
+        self.gparams = [theano.shared(x.get_value() *
                                       np.cast[x.get_value().dtype](0.0),
                                       name = "%s_grad" % x.name)
                         for x in self.params]
@@ -94,8 +94,7 @@ class Optimizer(object):
         self.lr = theano.shared(np.cast[fx](lr))
         self.mom = theano.shared(np.cast[fx](momentum))
         self.grad_clip = grad_clip
-        
-        print "grad_clip", grad_clip
+
         self.nan_protection = nan_protection
 
         self.batch_size = batch_size
@@ -108,15 +107,15 @@ class Optimizer(object):
                                                 self.data.keys())
             if notifier is None:
                 notifier = Notifier()
-            
+
             notifier.callback_del(Notifier.GET_DATA)
             for key in variables.keys():
                 notifier.callback_add(partial(self.get_data_callback, key=key),
                                       Notifier.GET_DATA)
 
         self.notifier = notifier
-        
-        self.train_model = self.init_updates()        
+
+        self.train_model = self.init_updates()
 
     def inspect_inputs(self, i, node, fn):
         print i, node, "input(s) value(s):", [inp[0] for inp in fn.inputs],
@@ -126,16 +125,16 @@ class Optimizer(object):
 
     def init_updates(self):
         gparams = T.grad(self.cost, self.params, disconnected_inputs = 'warn')
-        
+
         # Remove NaNs
         if self.nan_protection:
             gparams = [T.switch(T.isnan(g), 0., g) for g in gparams]
-        
+
         # Gradient clipping
         if self.grad_clip is not None:
             gparams = [T.minimum(g, self.grad_clip) for g in gparams]
             gparams = [T.maximum(g, -1. * self.grad_clip) for g in gparams]
-        
+
         lr = defaultdict(lambda *args : self.lr)
         try:
             lr.update(dict(self.notifier.notify(Notifier.LEARNING_RATES)))
@@ -147,7 +146,7 @@ class Optimizer(object):
             mult.update(dict(self.notifier.notify(Notifier.PARAM_MULT)))
         except Exception:
             pass
-        
+
         mom = defaultdict(lambda *args : self.mom)
         try:
             mom.update(dict(self.notifier.notify(Notifier.MOMENTUM)))
@@ -196,7 +195,7 @@ class Optimizer(object):
         -------
 
         The current cost (averaged over mini-batches)
-        
+
         """
         count = 0
         cost_sum = 0
@@ -227,7 +226,7 @@ class Optimizer(object):
                         raise ValueError("You provided {0} datasets with different number of instances. "
                                          "In particular, we found a batch with size {1} (dataset {3}) and another batch "
                                          "with size {2} (dataset {4}).".format(len(batches), len_curr_batch, len(batches[i]), 0, i))
-                
+
                 # train model
                 cost = self.train_model(*batches)
                 cost_sum += cost

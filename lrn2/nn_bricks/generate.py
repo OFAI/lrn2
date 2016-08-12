@@ -16,12 +16,12 @@ LOGGER = logging.getLogger(__name__)
 
 class NNFeatures(object):
     '''
-    Calculates some features of internal NN states and input 
+    Calculates some features of internal NN states and input
     for GD approximation during generation.
     '''
     def __init__(self):
         NNFeatures.compile_functions(self)
-        
+
     def chromagram_(self, img, y_mask = None):
         if y_mask:
             img = img[:,:,:,y_mask]
@@ -39,14 +39,14 @@ class NNFeatures(object):
             subsample = (1,1)
         )
         key_prof = conv_out[:,:,:,:-T.mod(conv_out.shape[3], 12)]
-        key_prof = T.reshape(key_prof, newshape=(conv_out.shape[0], 
-                                                 conv_out.shape[1], 
+        key_prof = T.reshape(key_prof, newshape=(conv_out.shape[0],
+                                                 conv_out.shape[1],
                                                  conv_out.shape[2], -1, 12))
         key_prof = T.sum(key_prof, axis = 3)
         key_prof = key_prof - T.min(key_prof, axis = 3, keepdims = True)
         key_prof = key_prof / (T.max(key_prof, axis = 3, keepdims = True) + 1e-6)
         return key_prof
-    
+
     def onsets_(self, solution, y_mask = None):
         if y_mask:
             solution = solution[:,:,:,y_mask]
@@ -64,7 +64,7 @@ class NNFeatures(object):
         # Sum down to t
         solution = T.sum(solution, axis=1)
         return solution
-    
+
     def rhythm_(self, solution):
         """ Rhythm over a measure (auto-correlation of onsets)"""
         shape_pr = solution.shape[2:]
@@ -84,20 +84,20 @@ class NNFeatures(object):
         corr = corr[corr.shape[0]/2+1:corr.shape[0]/2+16]
         corr -= T.mean(corr)
         corr /= T.std(corr)
-        return corr 
-    
+        return corr
+
     def polyphony_(self, solution, y_mask = None):
         if y_mask:
             solution = solution[:,:,:,y_mask]
         solution = T.sum(solution, axis=3)
         return solution
-        
+
     def sim_matrix_(self, img, img_filt, filt_size = (9,9), measure = 'dot'):
         measures = ['dot', 'cos']
         assert measure in measures, "measure has to be in {0}".format(measures)
         s = img_filt.shape
         img_filt = T.reshape(img_filt,
-                             newshape = (-1, s[1], filt_size[0], filt_size[1]), 
+                             newshape = (-1, s[1], filt_size[0], filt_size[1]),
                              ndim = 4, name = 'img_filt')
 #         img_filt = img_filt.dimshuffle(3,0,1,2)
         conv_out = dnn_conv(
@@ -121,30 +121,30 @@ class NNFeatures(object):
             # TODO: GO on from here
             norm = T.sqrt(conv_out2) * filt_norm.dimshuffle('x', 0, 'x', 'x')
             return conv_out / norm
-            
+
     def correlate_(self, a, b, filt_size = (8,8)):
         return T.sum(T.maximum(-1e8, self.sim_matrix_(b, a, filt_size)))
-    
-    def self_sim_matrix_(self, v_in, filt_size = (16,12), y_rng = None, 
+
+    def self_sim_matrix_(self, v_in, filt_size = (16,12), y_rng = None,
                          measure = 'dot'):
 #         v_in = max_pool_2d(v_in, ds = (2,2), ignore_border = True)
         if y_rng:
             v_in = v_in[:,:,:,y_rng[0]:y_rng[1]]
         self_sim = self.sim_matrix_(v_in, v_in, filt_size, measure = measure)
         return self_sim
-        
+
     def manhatten_corr(self, a, b):
         # [0,0,0,1,1,1,2,2,2]
         i = T.arange(a.shape[2]).repeat(a.shape[3])
         # [1,2,3,1,2,3,1,2,3]
         j = T.tile(T.arange(a.shape[3]), (a.shape[2],))
-        
-        manhatten, _ = theano.scan(lambda i,j : T.sum(T.abs_(T.roll(T.roll(a, shift = j, axis = 3), 
+
+        manhatten, _ = theano.scan(lambda i,j : T.sum(T.abs_(T.roll(T.roll(a, shift = j, axis = 3),
                                                                     shift = i, axis = 2) - b)),
                                    sequences = [i,j])
-                                   
+
         return T.sum(manhatten)
-        
+
     def gram_matrix_(self, v_in):
         """ Calculates a gram matrix capturing the correlations between unit
         activations for each instance of the given batch (by using the dot prod)
@@ -156,18 +156,18 @@ class NNFeatures(object):
             return results
         else:
             LOGGER.error("gram matrix for non-convolutional layers not implemented.")
-            
-             
+
+
     def compile_functions(self):
         #self.gram_matrix = theano.function([self.input], self.gram_matrix_(self.input))
         filt_size = T.vector('filt_size', dtype = 'int32')
-        self.self_sim_matrix = theano.function([self.variables['input'], filt_size], 
+        self.self_sim_matrix = theano.function([self.variables['input'], filt_size],
                                                self.self_sim_matrix_(self.input, filt_size))
         self.chromagram = theano.function([self.variables['input']], self.chromagram_(self.input))
         self.rhythm = theano.function([self.variables['input']], self.rhythm_(self.input))
         self.polyphony = theano.function([self.variables['input']], self.polyphony_(self.input))
-        
-        
+
+
 class DeepDreamer(object):
     def __init__(self, solution, lr):
         self.opt = None
@@ -184,7 +184,7 @@ class DeepDreamer(object):
         for epoch in range(steps):
             cost = self.opt.train()
             self.solution.set_value(np.maximum(self.solution.get_value(),0))
-            self.solution.set_value(np.minimum(self.solution.get_value(),1)) 
+            self.solution.set_value(np.minimum(self.solution.get_value(),1))
             #print "cost =", cost
 
         return cost
