@@ -20,7 +20,7 @@ from theano.sandbox.cuda.basic_ops import gpu_contiguous
 import sys
 
 if theano.config.device.startswith('gpu'):
-    import theano.sandbox.cuda.dnn.dnn_conv as conv2d
+    from theano.sandbox.cuda.dnn import dnn_conv as conv2d
     from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
     contig = gpu_contiguous
 else:
