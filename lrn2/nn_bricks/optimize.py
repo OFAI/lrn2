@@ -62,11 +62,17 @@ class Optimizer(object):
         Notifier.LEARNING_RATES, Notifier.PARAM_MULT, Notifier.MOMENTUM,
         Notifier.GRADIENT_CALCULATED
         Attention: Notifier.GET_DATA callbacks will be updated by the Optimizer!
+        
+    validate : theano graph
+        if separate validation function than the cost to be minimized should
+        be output as cost during training. (e.g. in Boltzmann Machines the
+        free energy should be minimized, but the reconstruction error should
+        be shown during training and in statistics) 
 
     """
     def __init__(self, cost, params, variables, data, batch_size, lr,
                  momentum = 0., grad_clip = None,
-                 nan_protection = True, notifier = None):
+                 nan_protection = True, notifier = None, validate = None):
 
         self.params = params
 
@@ -114,6 +120,7 @@ class Optimizer(object):
                                       Notifier.GET_DATA)
 
         self.notifier = notifier
+        self.validate = validate
 
         self.train_model = self.init_updates()
 
@@ -180,8 +187,10 @@ class Optimizer(object):
         updates = [(k, T.patternbroadcast(v, k.broadcastable))
                    for k, v in updates]
 
+        validate = self.validate if self.validate is not None else self.cost
+                        
         return theano.function(inputs=self.variables.values(),
-                               outputs=self.cost,
+                               outputs=validate,
                                updates=updates,
                                allow_input_downcast = True,
                                on_unused_input = 'warn')
@@ -242,7 +251,7 @@ class Optimizer(object):
         if count == 0:
             return 0.
 
-        return 1.0 * cost_sum / count #, np.concatenate(gparams) / count
+        return 1.0 * cost_sum / count
 
     def get_data_callback(self, batch_nr, key=''):
         curr_data = self.data[key]

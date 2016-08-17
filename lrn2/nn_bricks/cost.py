@@ -195,9 +195,6 @@ class CostPCD(CostCD, Persistent):
 
         self.pps_gibbs_step = self.pps_gibbs_step_fun(rebroadcast)
 
-#         print shape(self.W.get_value())
-#         print shape(self.bh.get_value())
-#         print self.pps_gibbs_step(self.pps.get_value())
         pps_input_step = partial(self.pps_gibbs_step, self.pps.get_value())
         for _ in range(n_cd):
             self.callback_add(pps_input_step, Notifier.BATCH_FINISHED)
