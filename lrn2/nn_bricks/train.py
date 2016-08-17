@@ -372,11 +372,11 @@ def train(net, data, batch_size = 200, epochs = 500, learning_rate = 1e-4,
 
     lr = learning_rate
     
-    validate = net.validate_() if hasattr(net, 'validate') else None
+    valid = net.validate_() if hasattr(net, 'validate') else None
     opt = Optimizer(net.cost(), params, net.variables, data,
                     batch_size, lr = lr, momentum = momentum,
                     notifier = net, grad_clip = grad_clip,
-                    validate = validate)
+                    valid = validate)
     
     net.optimizer = opt
 
