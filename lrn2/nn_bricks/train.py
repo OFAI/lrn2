@@ -376,7 +376,7 @@ def train(net, data, batch_size = 200, epochs = 500, learning_rate = 1e-4,
     opt = Optimizer(net.cost(), params, net.variables, data,
                     batch_size, lr = lr, momentum = momentum,
                     notifier = net, grad_clip = grad_clip,
-                    valid = validate)
+                    validate = valid)
     
     net.optimizer = opt
 
