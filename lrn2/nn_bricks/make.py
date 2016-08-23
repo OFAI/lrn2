@@ -568,11 +568,11 @@ class RNNPredict(Notifier, UnitsNNSigmoid,
         self.notify(Notifier.REGISTER_PLOTTING)
         
 class RNNGated(Notifier, UnitsNNTanh,
-                 RNN_Gated, CostCrossEntropy, SparsityLee,
-                 WeightRegularRNN,
-                 SerializeLayer, Monitor, Plotter):
+               RNN_Gated, CostCrossEntropy, SparsityLee,
+               WeightRegular,
+               SerializeLayer, Monitor, Plotter):
     """
-    Gated RNN, as proposed in 'Learning Phrase Representations using RNN 
+    Gated RNN, as proposed in 'Learning Phrase Representations using RNN
     Encoder-Decoder for Statistical Machine Translation', Cho et. al. 2014
     """
     def __init__(self, **kwargs):
@@ -580,10 +580,14 @@ class RNNGated(Notifier, UnitsNNTanh,
         Notifier.__init__(self)
         UnitsNNTanh.__init__(self)
 
-        RNN_Gated.__init__(self, act_fun_out=lambda x : T.nnet.sigmoid(x), **kwargs)
+        RNN_Gated.__init__(self, act_fun_out=lambda x : T.nnet.sigmoid(x),
+                           **kwargs)
         CostCrossEntropy.__init__(self, **kwargs)
         SparsityLee.__init__(self, **kwargs)
-        WeightRegularRNN.__init__(self, **kwargs)
+        weight_params = [self.Wxh, self.Wxr, self.Wxu, self.Whh, self.Why,
+                         self.Whr, self.Whu]
+        WeightRegular.__init__(self, wl_targets=weight_params,
+                               **kwargs)
         SerializeLayer.__init__(self)
         Monitor.__init__(self)
         Plotter.__init__(self)
