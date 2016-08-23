@@ -11,13 +11,8 @@ import numpy.ma as ma
 from _functools import partial
 from lrn2.nn_bricks.notifier import Notifier
 
-# try:
-#     if _platform == "darwin":
-#         matplotlib.use('MacOSX')
-#     else:
-#         matplotlib.use('agg')
-# except:
-#     pass
+from matplotlib import use
+use('agg')
 
 import matplotlib.pyplot as plt
 import PIL.Image
