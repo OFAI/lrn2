@@ -185,10 +185,10 @@ def train_layer_wise(net, data, config, run_keyword, validation = None,
                                              batch_size, out_size)]
     return net
 
-def train_cached(net, data, config, run_keyword, validation = None,
-                 postfix = "", tile_fun = dummy_tiler, exclude = [],
-                 re_train = False, load_only = False, load_existing = False,
-                 continue_existing = False, handler = None, **kwargs):
+def train_cached(net, data, config, run_keyword, validation=None,
+                 postfix="", tile_fun=dummy_tiler, exclude=[],
+                 re_train=False, load_only=False, load_existing=False,
+                 continue_existing=False, handler=None, **kwargs):
     """
     Trains a single layer or a stack with backpropagation by using the cost of
     the input net, according to a configuration file (whose structure reflects
@@ -262,8 +262,8 @@ def train_cached(net, data, config, run_keyword, validation = None,
         net.reset_monitor()
         
     args = {'validation': validation,
-            'out_dir': out_dir, 
-            'tile_fun': tile_fun, 
+            'out_dir': out_dir,
+            'tile_fun': tile_fun,
             'exclude': exclude}
     kwargs.update(args)
     return compute_w_backup(net, tmp_fn, train,
@@ -291,12 +291,12 @@ def validate(net, validation, batch_size):
     cost_valid = 1.0 * cost_valid_sum / (stop // batch_size)
     return cost_valid
 
-def train(net, data, batch_size = 200, epochs = 500, learning_rate = 1e-4, 
-          reduce_lr = False,
-          momentum = 0.0, validation = None, out_dir = '.',
-          img_interval = -1, dump_interval = -1, tile_fun = lambda x : x,
-          exclude = [], plot_zero_epoch = True, grad_clip = None,
-          **kwargs):
+def train(net, data, batch_size=200, epochs=500, learning_rate=1e-4,
+          reduce_lr=False,
+          momentum=0.0, validation=None, out_dir='.',
+          img_interval=-1, dump_interval=-1, tile_fun=lambda x : x,
+          exclude=[], plot_zero_epoch=True, grad_clip=None, grad_norm_clip=None,
+          mode='default', nan_protection=False, **kwargs):
 
     """
     Trains a single layer or a stack with backpropagation using the cost of the
@@ -376,10 +376,11 @@ def train(net, data, batch_size = 200, epochs = 500, learning_rate = 1e-4,
     
     lr = learning_rate
     opt = Optimizer(net.cost(), params, net.variables, data,
-                    batch_size, lr = lr, momentum = momentum,
-                    notifier = net, grad_clip = grad_clip,
-                    validate = valid)
-    
+                    batch_size, lr=lr, momentum=momentum,
+                    notifier=net, grad_clip=grad_clip,
+                    grad_norm_clip=grad_norm_clip,
+                    validate=valid, mode=mode, nan_protection=nan_protection)
+
     net.optimizer = opt
 
     curr_epoch = net.epochs_trained if isinstance(net, Monitor) else 0

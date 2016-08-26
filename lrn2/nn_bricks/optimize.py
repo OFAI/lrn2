@@ -71,8 +71,11 @@ class Optimizer(object):
 
     """
     def __init__(self, cost, params, variables, data, batch_size, lr,
-                 momentum = 0., grad_clip = None,
-                 nan_protection = True, notifier = None, validate = None):
+                 momentum=0., grad_clip=None, grad_norm_clip=None,
+                 nan_protection=False, notifier=None, validate=None,
+                 mode='default'):
+        
+        assert mode in ('default', 'rms_prop'), "mode is {0}".format(mode)
 
         self.params = params
 
@@ -100,6 +103,7 @@ class Optimizer(object):
         self.lr = theano.shared(np.cast[fx](lr))
         self.mom = theano.shared(np.cast[fx](momentum))
         self.grad_clip = grad_clip
+        self.grad_norm_clip = grad_norm_clip
 
         self.nan_protection = nan_protection
 
@@ -122,7 +126,10 @@ class Optimizer(object):
         self.notifier = notifier
         self.validate = validate
 
-        self.train_model = self.init_updates()
+        if mode == 'rms_prop':
+            self.train_model = self.init_updates_rms_prop()
+        else:
+            self.train_model = self.init_updates()
 
     def inspect_inputs(self, i, node, fn):
         print i, node, "input(s) value(s):", [inp[0] for inp in fn.inputs],
@@ -130,14 +137,72 @@ class Optimizer(object):
     def inspect_outputs(self, i, node, fn):
         print "output(s) value(s):", [output[0] for output in fn.outputs]
 
+    def init_updates_rms_prop(self):
+        gparams = T.grad(self.cost, self.params, disconnected_inputs='warn')
+
+        # Remove NaNs
+        if self.nan_protection:
+            gparams = [T.switch(T.isnan(g) or T.isinf(g), 0., g) for g in gparams]
+            
+        if not hasattr(self, 'ms_grad_last'):
+            self.ms_grad_last = [theano.shared(np.ones_like(x.get_value()),
+                                 name="%s_ms_grad" % x.name)
+                                 for x in self.params]
+
+        self.ms_grad = [0.9 * ms_g + 0.1 * g_cur**2 \
+                        for ms_g, g_cur in zip(self.ms_grad_last, gparams)]
+
+        gparams = [g / T.sqrt(ms_g) for g, ms_g in zip(gparams, self.ms_grad)]
+
+        # Parameter updates
+        updates_param = [
+            (param, param - self.lr * gparam_cur)
+            for param, gparam_cur in zip(self.params, gparams)
+        ]
+
+        # gradient updates for momentum
+        updates_ms_grad = [
+            (ms_grad_last, ms_grad_cur)
+            for ms_grad_last, ms_grad_cur in zip(self.ms_grad_last, self.ms_grad)
+        ]
+
+        updates = updates_param + updates_ms_grad
+
+        # Callback to an external function. E.g. there are non-integrable nodes
+        # which should be added after the gradient calculation.
+        if self.notifier is not None:
+            if len(self.notifier.callbacks[Notifier.GRADIENT_CALCULATED]) > 0:
+                grads_new = self.notifier.notify(Notifier.GRADIENT_CALCULATED, updates)
+                if grads_new is not None and len(grads_new) > 0:
+                    updates = np.vstack(grads_new)
+
+        # ensure that the broadcastpattern before and after the update is identical
+        updates = [(k, T.patternbroadcast(v, k.broadcastable))
+                   for k, v in updates]
+
+        validate = self.validate if self.validate is not None else self.cost
+
+        return theano.function(inputs=self.variables.values(),
+                               outputs=validate,
+                               updates=updates,
+                               allow_input_downcast=True,
+                               on_unused_input='warn')
+
     def init_updates(self):
         gparams = T.grad(self.cost, self.params, disconnected_inputs = 'warn')
 
         # Remove NaNs
         if self.nan_protection:
-            gparams = [T.switch(T.isnan(g), 0., g) for g in gparams]
+            gparams = [T.switch(T.isnan(g) or T.isinf(g), 0., g) for g in gparams]
 
-        # Gradient clipping
+        # gradient clipping (grad_norm)
+        if self.grad_norm_clip is not None:
+            grad_norm = T.sqrt(sum(map(lambda x: T.sqr(x).sum(), gparams)))
+            grad_norm = T.sqrt(grad_norm)
+            scale = self.grad_norm_clip / T.maximum(self.grad_norm_clip, grad_norm)
+            gparams = [g * scale for g in gparams]
+            
+        # Gradient clipping (hard)
         if self.grad_clip is not None:
             gparams = [T.minimum(g, self.grad_clip) for g in gparams]
             gparams = [T.maximum(g, -1. * self.grad_clip) for g in gparams]
