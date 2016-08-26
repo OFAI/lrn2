@@ -19,6 +19,7 @@ from lrn2.util.utils import read_input_filelist
 from lrn2.nn_bricks.train import train_cached
 from lrn2.data.formats.midi import load_midi_files, MIDIInterface
 from lrn2.nn_bricks.utils import get_from_cache_or_compute
+from collections import OrderedDict
 
 class MidiPitchVP(MIDIInterface, PitchVP): pass
 
@@ -71,8 +72,9 @@ def test_rnn(args, config):
     
     rnn_layer = make_net(config, input_shape = corpus.size, plot_dparams = False)[0]
 
-    data = {'input': corpus.ngram_data, 'target': np.roll(corpus.ngram_data, shift = -1, axis = 0)}
-    
+    data = OrderedDict((('input', corpus.ngram_data),
+                       ('target', np.roll(corpus.ngram_data, shift = -1, axis = 0))))
+
     train_cached(rnn_layer, data, config,
                  args.run_keyword, validation = None,
                  postfix = "layer_wise", tile_fun = corpus.tile_ngram_data,

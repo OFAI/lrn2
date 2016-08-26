@@ -30,6 +30,7 @@ from lrn2.nn_bricks.units import UnitsCRBMSigmoid, UnitsDropOut, UnitsCRBMGauss,
 from lrn2.nn_bricks.regularize import SparsityGOH, WeightRegular,\
     MaxNormRegular, SparsityLee, SparsityLeeConv, NonNegative, SparsitySum,\
     ActivationCrop, WeightRegularRNN
+from collections import OrderedDict
 
 LOGGER = logging.getLogger(__name__)
 
@@ -715,21 +716,21 @@ class ConvToDense(Notifier, ToDense):
         
 def create_in(name):
     input_sym = T.matrix(name='input' + name, dtype=fx)
-    return {'input': input_sym}
+    return OrderedDict((('input', input_sym),))
 
 def create_in_trg(name):
     input_sym = T.matrix(name='input' + name, dtype=fx)
     target_sym = T.matrix(name='target' + name, dtype=fx)
-    return {'input': input_sym, 'target': target_sym}
+    return OrderedDict((('input', input_sym), ('target', target_sym)))
 
 def create_in_conv(name):
     input_sym = T.tensor4(name='input' + name, dtype=fx)
-    return {'input': input_sym}
+    return OrderedDict((('input', input_sym),))
 
 def create_in_trg_conv(name):
     input_sym = T.tensor4(name='input' + name, dtype=fx)
     target_sym = T.tensor4(name='target' + name, dtype=fx)
-    return {'input': input_sym, 'target': target_sym}
+    return OrderedDict((('input', input_sym), ('target', target_sym)))
 
 def make_net(config, input_shape, in_maps = 1, **kwargs):
     """

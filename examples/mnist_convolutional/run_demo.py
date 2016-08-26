@@ -20,6 +20,7 @@ from lrn2.data.domain.image import ImageBinaryVP
 from lrn2.nn_bricks.stacks import FFNNCrossEntropy
 from lrn2.nn_bricks.utils import fx, get_from_cache_or_compute
 from lrn2.data.formats.mnist import load_mnist_files, MNISTInterface
+from collections import OrderedDict
 
 class MnistVP(MNISTInterface, ImageBinaryVP): pass
 
@@ -92,11 +93,13 @@ def test_mnist(args, config):
     
     # Define input data
     labels_bin = binary_labels(train_corpus.ngram_labels).astype(fx)
-    data = {'input': train_corpus.ngram_data, 'target': labels_bin}
-    
+    data = OrderedDict((('input', train_corpus.ngram_data),
+                        ('target', labels_bin)))
+
     # Validation data
     labels_bin_valid = binary_labels(valid_corpus.ngram_labels).astype(fx)
-    data_valid = {'input': valid_corpus.ngram_data, 'target': labels_bin_valid}
+    data_valid = OrderedDict((('input', valid_corpus.ngram_data),
+                             ('target', labels_bin_valid)))
 
     # Pack layers in stack with cross entropy cost
     stack = FFNNCrossEntropy(layers, 'mnist_classifier')

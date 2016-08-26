@@ -24,6 +24,7 @@ from lrn2.nn_bricks.utils import fx, get_from_cache_or_compute
 from lrn2.nn_bricks.train import train_layer_wise, train_cached
 from lrn2.data.formats.mnist import load_mnist_files, MNISTInterface
 from lrn2.application.visualization.plot_feature_space import plot_fs_2d
+from collections import OrderedDict
 
 class MnistVP(MNISTInterface, ImageBinaryVP): pass
 
@@ -95,7 +96,7 @@ def test_mnist(args, config):
     rbms = make_net(config, train_corpus.size)
     
     # Define input data
-    data = {'input': train_corpus.ngram_data}
+    data = OrderedDict((('input', train_corpus.ngram_data),))
 
     # Temporarily remove top layer from config (train only RBMs)
     config_less = copy.deepcopy(config)
@@ -109,8 +110,8 @@ def test_mnist(args, config):
 
     # Define target data
     labels_bin = binary_labels(train_corpus.ngram_labels).astype(fx)
-    data.update({'target': labels_bin})
-        
+    data['target'] = labels_bin
+
     # Pack layers in stack with cross entropy cost
     stack = FFNNCrossEntropy(rbms, 'mnist_classifier')
     

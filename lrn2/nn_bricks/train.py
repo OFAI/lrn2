@@ -5,9 +5,11 @@ Created on Feb 20, 2015
 '''
 
 import os
+import copy
 import time
 import logging
 
+from collections import OrderedDict
 from lrn2.nn_bricks.monitor import Monitor
 from lrn2.nn_bricks.optimize import Optimizer
 from lrn2.nn_bricks.notifier import Notifier
@@ -19,7 +21,7 @@ from lrn2.data.live_corpus import LiveCorpus, ProjectFeatureSpaceIterator
 from lrn2.data.formats.iterable import load_iter_items
 from lrn2.data.domain.raw import RawVP
 from _functools import partial
-import copy
+from lrn2.util.utils import ensure_ndarray
 
 LOGGER = logging.getLogger(__name__)
 
@@ -387,14 +389,14 @@ def train(net, data, batch_size = 200, epochs = 500, learning_rate = 1e-4,
     try:
         for curr_epoch in range(curr_epoch, epochs):
             if data is not None:
-                data_batch = {}
-                for key, value in data.items():
-                    data_batch[key] = value[:batch_size]
+                data_batch = OrderedDict()
+                for key in data.keys():
+                    data_batch[key] = ensure_ndarray(data[key][:batch_size])
             else:
                 data_batch = net.notify(Notifier.GET_DATA, 0)
-                data_batch = dict([[net.variables.keys()[i], data_batch[i]]
-                                   for i in range(len(data_batch))])
-            
+                data_batch = OrderedDict([[net.variables.keys()[i], data_batch[i]]
+                                          for i in range(len(data_batch))])
+
             if curr_epoch == 0 and out_dir is not None and plot_zero_epoch:
                 send_plot_command(net, out_dir, tile_fun, curr_epoch, data_batch)
 

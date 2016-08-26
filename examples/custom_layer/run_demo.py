@@ -27,6 +27,7 @@ from lrn2.data.domain.viewpoint import ViewPoint
 from lrn2.nn_bricks.stacks import FFNNCrossEntropy
 from lrn2.nn_bricks.utils import fx, get_from_cache_or_compute
 from lrn2.data.formats.midi import load_midi_files, MIDIInterface
+from collections import OrderedDict
 
 class MidiPitchVP(MIDIInterface, PitchVP): pass
 
@@ -167,9 +168,10 @@ def test_custom(args, config):
                          custom_layers = [Transformer,])
     
     nn_transform = FFNNCrossEntropy(nn_layers, "TransformingAutoencoder")
-    
-    data = {'input': data_src, 'target': data_trg, 'trans_in': data_transform}
-    
+
+    data = OrderedDict((('input', data_src), ('target', data_trg),
+                       ('trans_in', data_transform)))
+
     test_scale(nn_transform, corpus.size)
         
     train_cached(nn_transform, data, config,
