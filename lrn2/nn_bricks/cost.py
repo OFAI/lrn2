@@ -22,9 +22,6 @@ class Cost(object):
     Base class for costs without target (e.g. RBM, reconstruction, rnn prediction)
     """
     def __init__(self, **kwargs):
-#         if grad_clip is not None:
-#             self.ins_outs = dict([[key, theano.gradient.grad_clip(value, *grad_clip)]
-#                                    for key, value in self.ins_outs.items()])
         compile_own_f = partial(Cost.compile_functions, self)
         self.callback_add(compile_own_f, Notifier.COMPILE_FUNCTIONS)
 

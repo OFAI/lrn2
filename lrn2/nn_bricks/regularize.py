@@ -321,13 +321,15 @@ class SparsityLee(Distributer):
             self.int_lee = strengths
             
         self.narrow = narrow
-        self.activations = activations
-        cost = self.cost
         
+        self.auto_set = activations == None
+        self.activations = activations
+        
+        cost = self.cost
         self.cost = lambda *args : cost(*args) + self.get_ghbias_reg()
 
     def ensure_activation_set(self):
-        if self.activations == None:
+        if self.auto_set:
             message = "Module 'activation_h', or pass other graphs as 'activations'."
             assert hasattr(self, 'activation_h'), message
             self.activations = [self.activation_h(self.input)]
@@ -340,16 +342,13 @@ class SparsityLee(Distributer):
 
     def reg_sparsity(self):
         """ Determine regularisation term for sparsity """
-        self.ensure_activation_set()
         regs = 0
         for act, intense in zip(self.activations, self.int_lee):
             regs += T.sum((T.mean(act, axis=1) - self.sparsity)**2) * intense
         return regs
 
-            
     def reg_selectivity(self):
         """ Determine regularisation term for selectivity """
-        self.ensure_activation_set()
         regs = 0
         for act, intense in zip(self.activations, self.int_lee):
             regs += T.sum((T.mean(act, axis=0) - self.sparsity)**2) * intense
@@ -364,6 +363,7 @@ class SparsityLee(Distributer):
 
     def get_ghbias_reg(self):
         """ Calculate regularisation component of hbias gradients """
+        self.ensure_activation_set()
         reg_sp = (self.reg_sparsity() + self.reg_selectivity() +
                   self.narrow * self.reg_narrow())
         return reg_sp
