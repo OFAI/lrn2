@@ -13,6 +13,7 @@ import numpy as np
 import theano.tensor as T
 
 from logging import FileHandler
+from collections import OrderedDict
 from lrn2.data.corpus import Corpus
 from lrn2.nn_bricks.plot import Plotter
 from lrn2.util.config import get_config
@@ -27,7 +28,6 @@ from lrn2.data.domain.viewpoint import ViewPoint
 from lrn2.nn_bricks.stacks import FFNNCrossEntropy
 from lrn2.nn_bricks.utils import fx, get_from_cache_or_compute
 from lrn2.data.formats.midi import load_midi_files, MIDIInterface
-from collections import OrderedDict
 
 class MidiPitchVP(MIDIInterface, PitchVP): pass
 
@@ -70,7 +70,8 @@ class Transformer(Notifier, UnitsNNLinear, TransformingLayer, Plotter):
         # Define symbolic variables
         trans_in = T.matrix("transform_input", dtype = fx)
         input_sym = T.matrix(name='input' + kwargs['name'], dtype=fx)
-        kwargs['variables'] = {'input': input_sym, 'trans_in': trans_in}
+        kwargs['variables'] = OrderedDict((('input', input_sym),
+                                           ('trans_in', trans_in)))
         
         # initialize mix-in classes
         Notifier.__init__(self)

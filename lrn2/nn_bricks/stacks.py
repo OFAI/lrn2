@@ -21,6 +21,7 @@ from lrn2.nn_bricks.cost import CostSquaredError, CostKL,\
     CostReconErrDenoise, CostCrossEntropyAuto
 from lrn2.nn_bricks.serialize import SerializeStack
 from lrn2.nn_bricks.generate import NNFeatures, DeepDreamer
+from collections import OrderedDict
 
 LOGGER = logging.getLogger(__name__)
 
@@ -184,7 +185,7 @@ class NNStackLess(LayerConnector, FFBase):
     def __init__(self, layers, input_sym, name, variables = None):
         
         if variables == None:
-            variables = {}
+            variables = OrderedDict()
             for l in layers:
                 variables.update(l.variables)
                 
