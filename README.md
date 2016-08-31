@@ -24,11 +24,14 @@ Files are organized into several subdirectories (under **lrn2**):
 
 ### Links
 * [Documentation](http://lrn2cre8.ofai.at/lrn2/doc/)
-* [Tutorials](https://github.com/OFAI/lrn2/tree/github_orphan/tutorials)
+* Tutorials
+    - [First steps](https://github.com/OFAI/lrn2/blob/github_orphan/tutorials/tutorial01.ipynb)
+    - [Implementing custom viewpoints](https://github.com/OFAI/lrn2/blob/github_orphan/tutorials/tutorial02.ipynb)
+    - [The configuration file](https://github.com/OFAI/lrn2/blob/github_orphan/tutorials/tutorial03.ipynb)
 * [Project website](http://lrn2cre8.eu/?q=workpackage1/deliverable1.1)
 
 ### Requirements
-For convolution, [NVIDIA cuDNN](https://developer.nvidia.com/cudnn) is required.
+For convolution, [NVIDIA cuDNN](https://developer.nvidia.com/cudnn) is strongly recommended.
 
 ### Installation
 
@@ -70,7 +73,7 @@ layers = make_net(config, input_shape = (28, 28))
 stack = FFNNCrossEntropy(layers, name = 'mnist_classifier')
 
 # Define input data (mnist_data and mnist_labels are numpy arrays)
-data = {'input': mnist_data, 'target': mnist_labels}
+data = OrderedDict((('input', mnist_data), ('target', mnist_labels)))
 
 # Train the whole stack with backpropagation in discriminative task
 train_cached(stack, data, config, run_keyword = 'mnist_classifier', re_train = True)
