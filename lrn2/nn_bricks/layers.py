@@ -1116,6 +1116,8 @@ class RNN_Gated(FFBase):
                         input_shape = input_shape,
                         hidden_shape = (n_hidden,),
                         **kwargs)
+        
+        self.n_out = n_out
 
         if params is None:
             # parameters of the model
@@ -1164,7 +1166,7 @@ class RNN_Gated(FFBase):
 
     def recurrence_gen(self, v_in, h_before):
         o = self.output_t(v_in, h_before)
-        sample = T.cast(T.gt(o, self.t_rng.uniform((64,),0,1)),fx)
+        sample = T.cast(T.gt(o, self.t_rng.uniform((self.n_out,),0,1)),fx)
         return [sample,
                 self.activation_h_t(v_in, h_before)]
 
@@ -1303,6 +1305,9 @@ class LSTM(FFBase):
                         input_shape = input_shape,
                         hidden_shape = (n_hidden,),
                         **kwargs)
+        
+        self.n_out = n_out
+        
         if params is None:
             # parameters of the model
             self.Wxc = theano.shared(name='Wxc',
@@ -1376,7 +1381,7 @@ class LSTM(FFBase):
 
     def recurrence_gen(self, v_in, h_before, state_before):
         o = self.output_t(v_in, h_before)
-        sample = T.cast(T.gt(o, self.t_rng.uniform((64,),0,1)),fx)
+        sample = T.cast(T.gt(o, self.t_rng.uniform((self.n_out,),0,1)),fx)
         return [sample,
                 self.activation_h_t(v_in, h_before, state_before),
                 self.state_t(v_in, h_before, state_before)]
