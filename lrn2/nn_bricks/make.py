@@ -597,7 +597,7 @@ class RNNGated(Notifier, UnitsNNTanh,
         
 class RNNLSTM(Notifier, UnitsNNTanh,
            LSTM, CostLogLikelihoodBinomial, SparsityLee,
-           WeightRegularRNN,
+           WeightRegular,
            SerializeLayer, Monitor, Plotter):
     """ Long-short term memory, Hochreiter et. al. 1997 """
     def __init__(self, **kwargs):
@@ -608,7 +608,9 @@ class RNNLSTM(Notifier, UnitsNNTanh,
         LSTM.__init__(self, act_fun_out=lambda x : T.nnet.sigmoid(x), **kwargs)
         CostLogLikelihoodBinomial.__init__(self, **kwargs)
         SparsityLee.__init__(self, **kwargs)
-        WeightRegularRNN.__init__(self, **kwargs)
+        weight_params = [self.Wxc, self.Wxi, self.Wxf, self.Why, self.Whmo,
+                         self.Who, self.Whc, self.Wxo, self.Whi, self.Whf]
+        WeightRegular.__init__(self, wl_targets=weight_params, **kwargs)
         SerializeLayer.__init__(self)
         Monitor.__init__(self)
         Plotter.__init__(self)
