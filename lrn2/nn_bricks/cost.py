@@ -171,6 +171,9 @@ class CostPCD(CostCD, Persistent):
                  reset_pps_int = -1, **kwargs):
         CostCD.__init__(self, **kwargs)
         Persistent.__init__(self, reset_pps_int)
+        
+        if fantasy_particles == None:
+            raise ValueError("Please specify 'fantasy_particles = N' in the config file.")
 
         self.pps_shape = [fantasy_particles] + list(input_shape)
 
