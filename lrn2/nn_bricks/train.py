@@ -181,8 +181,8 @@ def train_layer_wise(net, data, config, run_keyword, validation = None,
                 data['input'] = batch_by_batch(net[i].out, data['input'], batch_size, out_size)
                 tile_fun = dummy_tiler
             if validation is not None:
-                validation = [batch_by_batch(net[i].out, validation['input'],
-                                             batch_size, out_size)]
+                validation = {'input': batch_by_batch(net[i].out, validation['input'],
+                                             batch_size, out_size)}
     return net
 
 def train_cached(net, data, config, run_keyword, validation=None,
